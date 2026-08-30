@@ -36,10 +36,10 @@ export default function GlobalWalletPage() {
   // Copied state
   const [copied, setCopied] = useState(false);
 
-  // Deposit Addresses (Configurable via ENV or fallback demo)
+  // Deposit Addresses (Configured with owner's official TON wallet)
   const depositAddresses = {
     USDT_TRC20: process.env.NEXT_PUBLIC_USDT_TRC20_ADDRESS || "TX7N2bK9mP4wQ1zR8vL3S5uY2eX6aB9cD0",
-    USDT_TON: process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS || "EQD3a92bK8vM1zR4wQ7nL2sP5uY8eX1aB9c",
+    USDT_TON: process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS || "UQCwqcdcUzIvpdsLIJyzd1nVxGkit8q3KIQ1upXeSUEDxcwU",
     STARS: `@${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "FlexaArenaBot"}`,
   };
 
