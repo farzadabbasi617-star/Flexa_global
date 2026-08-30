@@ -36,11 +36,11 @@ export default function GlobalWalletPage() {
   // Copied state
   const [copied, setCopied] = useState(false);
 
-  // Deposit Addresses (Demo / Configured addresses)
+  // Deposit Addresses (Configurable via ENV or fallback demo)
   const depositAddresses = {
-    USDT_TRC20: "TX7N2bK9mP4wQ1zR8vL3S5uY2eX6aB9cD0",
-    USDT_TON: "EQD3a92bK8vM1zR4wQ7nL2sP5uY8eX1aB9c",
-    STARS: "@FlexaArenaBot",
+    USDT_TRC20: process.env.NEXT_PUBLIC_USDT_TRC20_ADDRESS || "TX7N2bK9mP4wQ1zR8vL3S5uY2eX6aB9cD0",
+    USDT_TON: process.env.NEXT_PUBLIC_TON_WALLET_ADDRESS || "EQD3a92bK8vM1zR4wQ7nL2sP5uY8eX1aB9c",
+    STARS: `@${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "FlexaArenaBot"}`,
   };
 
   const currentDepositAddr = depositAddresses[selectedCurrency];
