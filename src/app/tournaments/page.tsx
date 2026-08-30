@@ -1,10 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import BottomNav from "@/components/BottomNav";
 import TournamentCardLuxury from "@/components/TournamentCardLuxury";
 import Reveal from "@/components/fx/Reveal";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -24,32 +23,22 @@ interface Tournament {
   bannerUrl?: string | null;
 }
 
-const GAME_META: Record<string, { fa: string; en: string; icon: string; accent: string }> = {
-  clash_royale: { fa: "کلش رویال", en: "Clash Royale", icon: "/icons/icon-clash_royale.png", accent: "from-cyan-500 to-blue-700" },
-  cod_mobile: { fa: "کالاف موبایل", en: "COD Mobile", icon: "/icons/icon-cod_mobile.png", accent: "from-orange-500 to-red-700" },
-  fortnite: { fa: "فورتنایت", en: "Fortnite", icon: "/icons/icon-fortnite.png", accent: "from-purple-500 to-pink-700" },
+const GAME_META: Record<string, { name: string; icon: string }> = {
+  cod_mobile: { name: "Call of Duty: Mobile", icon: "/icons/icon-cod_mobile.png" },
+  clash_royale: { name: "Clash Royale", icon: "/icons/icon-clash_royale.png" },
+  fortnite: { name: "Fortnite", icon: "/icons/icon-fortnite.png" },
 };
 
-const DEFAULT_MODE_LABEL: Record<string, string> = {
-  clash_royale: "دوئل / لیگ کلش",
-  cod_mobile: "روم‌های کالاف",
-  fortnite: "بتل رویال / کریتیو",
-};
-
-function normalizeMode(tournament: Tournament) {
-  const value = tournament.gameMode?.trim();
-  return value || DEFAULT_MODE_LABEL[tournament.game] || "سایر مودها";
-}
-
-function TournamentsContent({ canCreate, walletBalanceToman, isLoggedIn }: { canCreate: boolean; walletBalanceToman: number | null; isLoggedIn: boolean }) {
-  const { lang } = useLanguage();
+function TournamentsContent() {
+  const { lang, dir } = useLanguage();
   const searchParams = useSearchParams();
   const gameFilter = searchParams.get("game");
+  const { user } = useAuth();
+
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState(gameFilter || "all");
-
-  const L = (fa: string, en: string) => (lang === "fa" ? fa : en);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchTournaments = useCallback(async () => {
     setLoading(true);
@@ -58,7 +47,11 @@ function TournamentsContent({ canCreate, walletBalanceToman, isLoggedIn }: { can
       if (activeFilter !== "all") params.set("game", activeFilter);
       const res = await fetch(`/api/tournaments?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
-      setTournaments(Array.isArray(data) ? data : Array.isArray(data.data) ? data.data : []);
+      if (Array.isArray(data)) {
+        setTournaments(data);
+      } else {
+        setTournaments([]);
+      }
     } catch {
       setTournaments([]);
     }
@@ -69,176 +62,130 @@ function TournamentsContent({ canCreate, walletBalanceToman, isLoggedIn }: { can
     fetchTournaments();
   }, [fetchTournaments]);
 
-  const games = [
-    { id: "all", name: L("همه", "All"), icon: "/icons/flexa-icon-192.png" },
-    ...Object.entries(GAME_META).map(([id, meta]) => ({ id, name: L(meta.fa, meta.en), icon: meta.icon })),
-  ];
-
-  const grouped = useMemo(() => {
-    const result = new Map<string, Map<string, Tournament[]>>();
-
-    for (const tournament of tournaments) {
-      if (!result.has(tournament.game)) result.set(tournament.game, new Map());
-      const mode = normalizeMode(tournament);
-      const gameModes = result.get(tournament.game)!;
-      if (!gameModes.has(mode)) gameModes.set(mode, []);
-      gameModes.get(mode)!.push(tournament);
-    }
-
-    // Stable ordering: known games first, then custom/unknown.
-    return Array.from(result.entries()).sort(([a], [b]) => {
-      const order = ["cod_mobile", "fortnite", "clash_royale"];
-      return (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b));
-    });
-  }, [tournaments]);
+  const filteredTournaments = tournaments.filter((t) => {
+    if (!searchQuery) return true;
+    return t.name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
-    <>
-      {/* Game Selection Pills */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-3 snap-x scrollbar-hide" dir="rtl">
-        {games.map((g) => (
-          <button
-            key={g.id}
-            onClick={() => setActiveFilter(g.id)}
-            className={`snap-start whitespace-nowrap px-4 py-2.5 rounded-2xl text-xs font-black border transition-all active:scale-[0.985] flex items-center gap-2 shrink-0 ${
-              activeFilter === g.id
-                ? "bg-purple-600 text-white border-purple-500 shadow-[0_0_15px_rgba(168,85,247,.35)]"
-                : "bg-[#111114] text-gray-400 border-white/5 hover:border-white/10 active:bg-[#18181c]"
-            }`}
-          >
-            <img src={g.icon} alt={g.name} className="w-4 h-4 object-contain shrink-0" loading="lazy" decoding="async" />
-            <span>{g.name}</span>
-          </button>
-        ))}
-      </div>
+    <div className="min-h-screen bg-[#050508] text-white selection:bg-purple-500/30" dir={dir}>
+      <Navbar />
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-4xl animate-neon-pulse">🎮</div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Header */}
+        <Reveal>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <div className="text-xs font-black tracking-widest text-cyan-400 uppercase mb-1">
+                FLEXA ARENA GLOBAL
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-black text-white">
+                {lang === "ar" ? "البطولات والمواجهات المباشرة" : "Global Tournaments & Arenas"}
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">
+                {lang === "ar"
+                  ? "تصفح البطولات المفتوحة، انضم للوبي، واربح جوائز USDT و TON"
+                  : "Compete in skill-based tournaments with guaranteed USDT & TON prize pools."}
+              </p>
+            </div>
+
+            {user?.role === "admin" && (
+              <Link
+                href="/tournaments/create"
+                className="px-6 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-xs font-black transition-all shadow-lg shadow-purple-600/30"
+              >
+                + {lang === "ar" ? "إنشاء بطولة" : "Create Tournament"}
+              </Link>
+            )}
+          </div>
+        </Reveal>
+
+        {/* Search & Filter Bar */}
+        <div className="p-4 rounded-3xl bg-dark-900 border border-white/10 mb-8 space-y-4">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            {/* Search Input */}
+            <div className="relative w-full md:w-72">
+              <input
+                type="text"
+                placeholder={lang === "ar" ? "بحث عن بطولة..." : "Search tournaments..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-dark-950 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
+              />
+              <span className="absolute end-3 top-3 text-gray-500 text-sm">🔍</span>
+            </div>
+
+            {/* Game Filters */}
+            <div className="flex items-center gap-2 overflow-x-auto w-full pb-1 sm:pb-0">
+              <button
+                onClick={() => setActiveFilter("all")}
+                className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+                  activeFilter === "all"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+                    : "bg-dark-800 text-gray-400 hover:text-white"
+                }`}
+              >
+                🎮 {lang === "ar" ? "جميع الألعاب" : "All Games"}
+              </button>
+
+              {Object.entries(GAME_META).map(([key, meta]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(key)}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+                    activeFilter === key
+                      ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+                      : "bg-dark-800 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <span>{meta.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      ) : tournaments.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="text-6xl mb-4">🏟️</div>
-          <h3 className="text-xl font-bold mb-2">{L("هنوز تورنومنتی نیست", "No Tournaments Yet")}</h3>
-          <p className="text-gray-400 mb-6">
-            {canCreate
-              ? L("اولین تورنومنت رو بساز!", "Create the first tournament!")
-              : L("به‌زودی تورنومنت‌های جدید توسط مدیرها ساخته می‌شود.", "Admins will create tournaments soon.")}
-          </p>
-          {canCreate && (
-            <Link href="/tournaments/create" className="gaming-btn">
-              {L("ساخت تورنومنت", "Create Tournament")}
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-12">
-          {grouped.map(([gameId, modeMap]) => {
-            const meta = GAME_META[gameId] || { fa: gameId, en: gameId, icon: "🎮", accent: "from-purple-500 to-blue-700" };
-            const modes = Array.from(modeMap.entries()).sort(([a], [b]) => a.localeCompare(b, "fa"));
 
-            return (
-              <Reveal as="section" key={gameId} className="relative" distance={22}>
-                <div className="flex items-center justify-between gap-4 mb-5" dir="rtl">
-                  <div className="flex items-center gap-3">
-                    {/* Uniform Square Game Logo inside glowing container */}
-                    <div className="w-12 h-12 rounded-2xl bg-[#111114] border border-white/10 flex items-center justify-center p-2 sm:p-2.5 shadow-[0_0_20px_rgba(168,85,247,0.12)] shrink-0">
-                      <img src={meta.icon} alt={L(meta.fa, meta.en)} className="w-full h-full object-contain" loading="lazy" decoding="async" />
-                    </div>
-                    <div className="text-right">
-                      <h2 className="text-xl sm:text-2xl font-black text-white">{L(meta.fa, meta.en)}</h2>
-                      <p className="text-[10px] sm:text-xs text-gray-500 mt-1">اسکرول افقی تورنومنت‌ها بر اساس مود بازی</p>
-                    </div>
-                  </div>
-                  <Link href={`/tournaments?game=${gameId}`} className="text-xs font-black text-purple-300 whitespace-nowrap">
-                    همه {L(meta.fa, meta.en)} ←
-                  </Link>
-                </div>
-
-                <div className="space-y-8">
-                  {modes.map(([mode, list]) => (
-                    <div key={`${gameId}-${mode}`} className="glass-panel p-5 rounded-3xl border border-white/5" dir="rtl">
-                      <div className="flex items-center justify-between gap-3 mb-5">
-                        <div className="text-right">
-                          <h3 className="font-black text-base sm:text-lg text-white">{mode}</h3>
-                          <p className="text-xs text-gray-500 mt-0.5">{list.length.toLocaleString("fa-IR")} روم فعال</p>
-                        </div>
-                        <span className="text-[9px] px-2.5 py-1 rounded-full bg-white/5 text-gray-400 border border-white/5 font-semibold">
-                          اسکرول افقی
-                        </span>
-                      </div>
-
-                      <div className="flex gap-4 overflow-x-auto snap-x pb-2 -mx-1 px-1 scrollbar-hide">
-                        {list.map((tournament) => (
-                          <div key={tournament.id} className="snap-start shrink-0 w-[min(295px,calc(100vw-48px))]">
-                            <TournamentCardLuxury t={tournament} walletBalanceToman={walletBalanceToman} isLoggedIn={isLoggedIn} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Reveal>
-            );
-          })}
-        </div>
-      )}
-    </>
+        {/* Tournaments Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-12">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-96 rounded-[32px] bg-dark-900 border border-white/5 animate-pulse" />
+            ))}
+          </div>
+        ) : filteredTournaments.length === 0 ? (
+          <div className="text-center py-20 bg-dark-900/50 rounded-3xl border border-white/10">
+            <div className="text-5xl mb-4">🏆</div>
+            <h3 className="text-xl font-black text-white mb-2">
+              {lang === "ar" ? "لا توجد بطولات حالياً" : "No Active Tournaments Found"}
+            </h3>
+            <p className="text-xs text-gray-400 max-w-md mx-auto">
+              {lang === "ar"
+                ? "عد لاحقاً لمتابعة البطولات القادمة أو استخدم فلتر البحث."
+                : "Check back soon for upcoming championships or select a different game filter."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTournaments.map((t) => (
+              <TournamentCardLuxury key={t.id} t={t} isLoggedIn={!!user} />
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
 
 export default function TournamentsPage() {
-  const { lang } = useLanguage();
-  const { user } = useAuth();
-  const [walletBalanceToman, setWalletBalanceToman] = useState<number | null>(null);
-  const L = (fa: string, en: string) => (lang === "fa" ? fa : en);
-  const canCreate = user?.role === "admin" || user?.role === "super_admin";
-
-  useEffect(() => {
-    if (!user) {
-      setWalletBalanceToman(null);
-      return;
-    }
-    fetch("/api/wallet/balance", { cache: "no-store", credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => setWalletBalanceToman(Number(data.balanceToman || 0)))
-      .catch(() => setWalletBalanceToman(null));
-  }, [user]);
-
   return (
-    <div className="min-h-screen bg-dark-900">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8" style={{ paddingBottom: "var(--bottom-nav-space)" }}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6" dir="rtl">
-          <div className="text-right">
-            <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2.5 justify-start">
-              <img src="/icons/honors_icon.webp" alt="Tournaments" className="w-8 h-8 object-contain drop-shadow-[0_0_8px_#bc00ff] shrink-0" loading="lazy" decoding="async" />
-              <span className="bg-gradient-to-l from-purple-400 to-cyan-300 bg-clip-text text-transparent">{L("تورنومنت‌ها", "Tournaments")}</span>
-            </h1>
-            <p className="text-gray-400 mt-1.5 text-xs">
-              {L("هر بازی در مودهای خودش، با اسکرول افقی تورنومنت‌ها", "Browse tournaments by game and mode")}
-            </p>
-          </div>
-          {canCreate && (
-            <Link href="/tournaments/create" className="gaming-btn text-sm">
-              + {L("تورنومنت جدید", "New Tournament")}
-            </Link>
-          )}
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#050508] flex items-center justify-center text-3xl animate-pulse">
+          ⚡
         </div>
-        {user && walletBalanceToman !== null && (
-          <div className="gaming-card p-4 mb-6 flex items-center justify-between gap-3 border-neon-blue/20" dir="rtl">
-            <div className="text-right">
-              <div className="text-xs text-gray-500 mb-1">موجودی کیف پول</div>
-              <div className="font-black text-neon-blue num-en">{walletBalanceToman.toLocaleString("en-US")} USDT</div>
-            </div>
-            <Link href="/wallet" className="gaming-btn text-xs">شارژ / تراکنش‌ها</Link>
-          </div>
-        )}
-        <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="text-4xl animate-neon-pulse">🎮</div></div>}>
-          <TournamentsContent canCreate={Boolean(canCreate)} walletBalanceToman={walletBalanceToman} isLoggedIn={Boolean(user)} />
-        </Suspense>
-      </div>
-      <BottomNav />
-    </div>
+      }
+    >
+      <TournamentsContent />
+    </Suspense>
   );
 }

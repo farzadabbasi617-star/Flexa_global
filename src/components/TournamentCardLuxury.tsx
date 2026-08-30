@@ -2,13 +2,9 @@
 
 import React, { memo, useMemo } from "react";
 import Link from "next/link";
-import { parseTomanToRial, rialToTomanNumber } from "@/lib/money";
-import { calculateDynamicTournamentPrizePool } from "@/lib/tournament-finance";
-import { isClash1v1QueueTournament } from "@/lib/clash-1v1-config";
-import { checkAgeGate, MIN_ADULT_AGE } from "@/lib/age-gate";
-import { useAuth } from "@/contexts/AuthContext";
 import TiltCard from "@/components/fx/TiltCard";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Tournament {
   id: string;
@@ -27,7 +23,6 @@ interface Tournament {
 
 interface Props {
   t: Tournament;
-  walletBalanceToman?: number | null;
   isLoggedIn?: boolean;
 }
 
@@ -37,91 +32,28 @@ const GAME_FALLBACK: Record<string, string> = {
   clash_royale: "radial-gradient(circle at 75% 28%, rgba(0,210,255,.38), transparent 22%), linear-gradient(135deg,#080a12,#09283a)",
 };
 
-// تابع هوشمند برای تبدیل لینک imgurl.ir به لینک مستقیم تصویر
-function getDirectImageUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-
-  // پشتیبانی از لینک viewer.php
-  if (url.includes("imgurl.ir/viewer.php")) {
-    const match = url.match(/[?&]file=([^&]+)/);
-    if (match && match[1]) {
-      // حذف کاراکترهای اضافی و ساخت لینک مستقیم
-      const fileName = match[1].split("?")[0]; // در صورت وجود پارامتر اضافی
-      return `https://cdn.imgurl.ir/uploads/${fileName}`;
-    }
-  }
-
-  // اگر لینک مستقیم باشد (cdn.imgurl.ir)
-  if (url.includes("cdn.imgurl.ir")) {
-    return url;
-  }
-
-  // در غیر این صورت همان لینک را برمی‌گردانیم
-  return url;
-}
-
-const TournamentCardLuxury = ({ t, walletBalanceToman = null, isLoggedIn = false }: Props) => {
+const TournamentCardLuxury = ({ t, isLoggedIn = false }: Props) => {
+  const { lang, dir } = useLanguage();
   const spotsLeft = Math.max(0, t.maxPlayers - (t.registeredCount || 0));
   const { value: countdown, expired } = useCountdown(t.startDate);
-  const { user } = useAuth();
 
-  // تبدیل خودکار لینک تصویر
-  const bannerUrl = getDirectImageUrl(t.bannerUrl);
+  const entryFeeDisplay = useMemo(() => {
+    if (!t.entryFee || t.entryFee.toLowerCase().includes("free") || t.entryFee === "0") {
+      return lang === "ar" ? "مجاناً" : "FREE";
+    }
+    return t.entryFee.includes("$") ? t.entryFee : `$${t.entryFee} USDT`;
+  }, [t.entryFee, lang]);
 
-  const entryFeeInfo = useMemo(() => {
-    const rial = parseTomanToRial(t.entryFee || "");
-    const toman = rialToTomanNumber(rial);
-    return { rial, toman, isPaid: rial > BigInt(0) };
-  }, [t.entryFee]);
-
-  // Age-gate check — only relevant for paid tournaments. The server does
-  // its own authoritative check on submit; this is UX only (so under-18
-  // users see the button disabled with a clear message instead of
-  // discovering the block after clicking through).
-  const ageGate = useMemo(() => {
-    if (!user || !entryFeeInfo.isPaid) return { ok: true as const };
-    return checkAgeGate({ birthDate: user.birthDate, nationalId: user.nationalId });
-  }, [user, entryFeeInfo.isPaid]);
-  const ageBlocked = isLoggedIn && !t.isRegistered && entryFeeInfo.isPaid && !ageGate.ok;
-
-  const prizeData = useMemo(() => {
-    return calculateDynamicTournamentPrizePool({
-      entryFee: t.entryFee,
-      registeredCount: t.registeredCount,
-      maxPlayers: t.maxPlayers,
-      staticPrizePool: t.prizePool,
-      // 1V1 is a matchmaking queue whose maxPlayers is the queue capacity
-      // (1000), not the two seats in an actual match.
-      isDuel: isClash1v1QueueTournament(t),
-    });
-  }, [t]);
-
-  const insufficientWallet = Boolean(
-    isLoggedIn && !t.isRegistered && entryFeeInfo.isPaid && walletBalanceToman !== null && walletBalanceToman < entryFeeInfo.toman
-  );
-
-  const action = t.isRegistered
-    ? { href: `/tournaments/${t.id}/lobby`, label: "ورود به لابی", tone: "from-green-600 to-emerald-600" }
-    : ageBlocked
-    ? {
-        // Under-18 (or missing kyc fields) trying to enter a paid tournament
-        // — bounce them to the profile page to complete their age-gate info,
-        // or show a hard block if they really are under age.
-        href: ageGate.ok || (ageGate as { code?: string }).code === "UNDERAGE" ? "#" : "/profile",
-        label:
-          !ageGate.ok && (ageGate as { code?: string }).code === "UNDERAGE"
-            ? `فقط بالای ${MIN_ADULT_AGE.toLocaleString("fa-IR")} سال`
-            : "تکمیل اطلاعات هویتی",
-        tone: "from-slate-600 to-slate-700",
-      }
-    : insufficientWallet
-    ? { href: "/wallet", label: "شارژ کیف پول", tone: "from-orange-600 to-red-600" }
-    : { href: `/tournaments/${t.id}`, label: entryFeeInfo.isPaid ? "ثبت‌نام پولی" : "ثبت‌نام", tone: "from-purple-600 to-blue-600" };
+  const prizeDisplay = useMemo(() => {
+    if (!t.prizePool) return "$500 USDT";
+    return t.prizePool.includes("$") ? t.prizePool : `$${t.prizePool} USDT`;
+  }, [t.prizePool]);
 
   const formatTournamentDate = (dateStr: string | null) => {
-    if (!dateStr) return "زمان نامشخص";
+    if (!dateStr) return lang === "ar" ? "قريباً" : "Upcoming";
     const date = new Date(dateStr);
-    return date.toLocaleString("fa-IR", {
+    const locale = lang === "ar" ? "ar-SA" : "en-US";
+    return date.toLocaleString(locale, {
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -130,92 +62,120 @@ const TournamentCardLuxury = ({ t, walletBalanceToman = null, isLoggedIn = false
     });
   };
 
-  return (
-    <TiltCard maxTilt={6} liftZ={14} scaleOnHover={1.015} className="rounded-[32px] mb-5">
-      <div className="relative overflow-hidden rounded-[32px] bg-[#0f0f13] border border-white/8 shadow-2xl fx-card active:scale-[0.985] transition-transform">
-        <div className="relative h-40 w-full">
-          <div className="absolute inset-0" style={{ background: GAME_FALLBACK[t.game] || GAME_FALLBACK.clash_royale }} />
-          {bannerUrl && <img src={bannerUrl} alt={t.name} className="absolute inset-0 w-full h-full object-cover opacity-60" />}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f13] via-black/30 to-black/10" />
+  const action = t.isRegistered
+    ? {
+        href: `/tournaments/${t.id}/lobby`,
+        label: lang === "ar" ? "دخول اللوبي" : "Enter Lobby ⚔️",
+        tone: "from-emerald-600 to-green-600",
+      }
+    : spotsLeft === 0
+    ? {
+        href: `/tournaments/${t.id}`,
+        label: lang === "ar" ? "مكتمل" : "Full Capacity",
+        tone: "from-gray-700 to-gray-800",
+      }
+    : {
+        href: `/tournaments/${t.id}`,
+        label: lang === "ar" ? "انضم الآن" : "Register Now →",
+        tone: "from-purple-600 to-blue-600",
+      };
 
-          <div className="absolute bottom-4 left-5 right-5 text-right" style={{ transform: "translateZ(22px)" }}>
-            <h3 className="text-[22px] leading-tight font-black en-font tracking-[-0.02em] text-white drop-shadow">
+  return (
+    <TiltCard maxTilt={5} liftZ={12} scaleOnHover={1.015} className="rounded-[32px] mb-5">
+      <div className="relative overflow-hidden rounded-[32px] bg-[#0f0f13] border border-white/10 shadow-2xl fx-card transition-all">
+        <div className="relative h-44 w-full">
+          <div
+            className="absolute inset-0"
+            style={{ background: GAME_FALLBACK[t.game] || GAME_FALLBACK.clash_royale }}
+          />
+          {t.bannerUrl && (
+            <img
+              src={t.bannerUrl}
+              alt={t.name}
+              className="absolute inset-0 w-full h-full object-cover opacity-60"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f13] via-black/40 to-black/10" />
+
+          <div className="absolute bottom-4 left-5 right-5" style={{ transform: "translateZ(20px)" }}>
+            <h3 className="text-xl sm:text-22px leading-tight font-black tracking-tight text-white drop-shadow-md">
               {t.name}
             </h3>
           </div>
 
-          <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xl px-3.5 py-1.5 rounded-2xl border border-white/10" style={{ transform: "translateZ(30px)" }}>
+          <div
+            className="absolute top-4 right-4 bg-black/70 backdrop-blur-xl px-3.5 py-1.5 rounded-2xl border border-white/10"
+            style={{ transform: "translateZ(30px)" }}
+          >
             <span className="text-[10px] font-black text-white/90">
-              {t.isRegistered ? "ثبت‌نام شده" : spotsLeft === 0 ? "ظرفیت تکمیل" : `${spotsLeft} نفر باقی‌مانده`}
+              {t.isRegistered
+                ? (lang === "ar" ? "مسجل" : "Registered")
+                : spotsLeft === 0
+                ? (lang === "ar" ? "مكتمل" : "Full")
+                : `${spotsLeft} ${lang === "ar" ? "مقاعد متبقية" : "spots left"}`}
             </span>
           </div>
 
           {t.isRegistered && (
             <div className="absolute top-4 left-4 bg-emerald-500/20 backdrop-blur-xl px-3 py-1 rounded-2xl border border-emerald-500/30 text-emerald-400 text-[10px] font-black">
-              ✓ عضو هستید
+              ✓ {lang === "ar" ? "تم الانضمام" : "Joined"}
             </div>
           )}
         </div>
 
         <div className="p-5 pt-4 space-y-4">
           {/* Prize Section */}
-          <div className="bg-gradient-to-r from-yellow-500/10 to-transparent border border-yellow-500/20 p-4 rounded-2xl flex items-center justify-between">
+          <div className="bg-gradient-to-r from-yellow-500/10 via-amber-500/5 to-transparent border border-yellow-500/20 p-4 rounded-2xl flex items-center justify-between">
             <div>
-              <div className="text-[10px] text-yellow-500/70 font-bold mb-0.5">
-                {prizeData.isPaid ? "جایزه کل (طبق شرکت‌کنندگان • تقسیم تا نفر دهم)" : "جایزه کل مسابقات"}
+              <div className="text-[10px] text-yellow-500/80 font-bold tracking-wider uppercase mb-0.5">
+                {lang === "ar" ? "مجموع الجوائز (USDT / TON)" : "Guaranteed Prize Pool"}
               </div>
-              <div className="font-black text-yellow-400 text-lg">
-                {prizeData.displayPrizePool}
-              </div>
-              <div className="text-[10px] text-yellow-500/80 mt-0.5 font-medium leading-4">
-                {prizeData.subtitle}
+              <div className="font-black text-yellow-400 text-xl tracking-tight">
+                {prizeDisplay}
               </div>
             </div>
-            <span className="text-3xl opacity-80 shrink-0">🏆</span>
+            <span className="text-3xl opacity-90 shrink-0">🏆</span>
           </div>
 
           {/* Date & Countdown */}
           <div className="grid grid-cols-1 gap-2.5">
-            <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl flex items-center justify-between text-sm">
-              <span className="text-gray-400">زمان شروع</span>
+            <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl flex items-center justify-between text-xs sm:text-sm">
+              <span className="text-gray-400">{lang === "ar" ? "وقت البدء:" : "Start Time"}</span>
               <span className="font-bold text-white">{formatTournamentDate(t.startDate)}</span>
             </div>
 
             {countdown && (
-              <div className={`p-3.5 rounded-2xl border flex items-center justify-between text-sm ${expired ? "bg-emerald-500/10 border-emerald-500/20" : "bg-purple-500/10 border-purple-500/20"}`}>
-                <span className="text-gray-400">تا شروع</span>
-                <span className={`font-black ${expired ? "text-emerald-400" : "text-purple-300"}`}>{countdown}</span>
+              <div
+                className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs sm:text-sm ${
+                  expired
+                    ? "bg-emerald-500/10 border-emerald-500/20"
+                    : "bg-purple-500/10 border-purple-500/20"
+                }`}
+              >
+                <span className="text-gray-400">{lang === "ar" ? "الوقت المتبقي:" : "Starts In"}</span>
+                <span
+                  className={`font-black ${expired ? "text-emerald-400" : "text-purple-300"}`}
+                >
+                  {countdown}
+                </span>
               </div>
             )}
           </div>
 
-          {insufficientWallet && !ageBlocked && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-300 rounded-2xl p-3 text-xs leading-5">
-              موجودی کیف پول کافی نیست.
-            </div>
-          )}
-
-          {ageBlocked && (
-            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 rounded-2xl p-3 text-xs leading-6">
-              {!ageGate.ok && (ageGate as { code?: string }).code === "UNDERAGE"
-                ? `شرکت در تورنومنت‌های پولی فقط برای کاربران بالای ${MIN_ADULT_AGE.toLocaleString("fa-IR")} سال مجاز است. می‌توانید در تورنومنت‌های رایگان شرکت کنید.`
-                : "برای شرکت در تورنومنت‌های پولی باید تاریخ تولد و کد ملی خود را در پروفایل ثبت کنید."}
-            </div>
-          )}
-
           {/* Action Row */}
-          <div className="flex items-center justify-between pt-1">
-            <div className="text-right">
-              <div className="font-black text-xl num-en tracking-tight">{t.entryFee || "رایگان"}</div>
-              {entryFeeInfo.isPaid && <div className="text-[10px] text-gray-500 -mt-0.5">هزینه ورودی</div>}
+          <div className="flex items-center justify-between pt-2 border-t border-white/5">
+            <div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                {lang === "ar" ? "رسوم الدخول" : "Entry Fee"}
+              </div>
+              <div className="font-black text-lg text-cyan-300">{entryFeeDisplay}</div>
             </div>
 
             <Link
               href={action.href}
-              className={`px-7 py-3.5 rounded-2xl font-black text-sm flex items-center gap-2 active:scale-[0.985] transition-all bg-gradient-to-r ${action.tone} shadow-lg`}
+              className={`px-6 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 active:scale-[0.985] transition-all bg-gradient-to-r ${action.tone} text-white shadow-lg`}
             >
               {action.label}
-              <span className="text-xs">←</span>
             </Link>
           </div>
         </div>
