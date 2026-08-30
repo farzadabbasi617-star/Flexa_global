@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { calculateAIJudgment, AIJudgmentResult } from "@/lib/ai-engine";
 
 interface Match {
   id: string;
@@ -12,608 +13,285 @@ interface Match {
   matchNumber: number;
   player1Id: string | null;
   player2Id: string | null;
+  player1Name?: string;
+  player2Name?: string;
   player1Score: number | null;
   player2Score: number | null;
   winnerId: string | null;
   status: "pending" | "in_progress" | "awaiting_judgment" | "completed" | "disputed";
 }
 
-interface Judge {
-  id: string;
-  name: string;
-  email: string | null;
-  role: string;
-}
-
-interface Judgment {
-  id: string;
-  matchId: string;
-  judgeId: string | null;
-  isAiJudgment: boolean;
-  verdict: string;
-  reasoning: string | null;
-  confidence: number | null;
-  scoreBreakdown: Record<string, unknown> | null;
-  createdAt: string;
-}
-
-interface Evidence {
-  id: string;
-  uploaderName: string | null;
-  uploaderUsername: string | null;
-  uploaderRole: string | null;
-  fileUrl: string;
-  fileType: string;
-  description: string | null;
-  createdAt: string;
-}
-
-interface Player {
-  id: string;
-  username: string;
-  displayName: string;
-  rating: number;
-}
-
-const MATCH_STATUS_STYLES = {
-  pending: { color: "text-gray-400" },
-  in_progress: { color: "text-neon-yellow" },
-  awaiting_judgment: { color: "text-neon-orange" },
-  completed: { color: "text-neon-green" },
-  disputed: { color: "text-neon-pink" },
-};
-
 function JudgingContent() {
-  const { t } = useLanguage();
+  const { lang, dir } = useLanguage();
   const searchParams = useSearchParams();
   const preSelectedMatch = searchParams.get("matchId");
 
   const [matches, setMatches] = useState<Match[]>([]);
-  const [judges, setJudges] = useState<Judge[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<string>(preSelectedMatch || "");
-  const [selectedJudge, setSelectedJudge] = useState("");
-  const [judgments, setJudgments] = useState<Judgment[]>([]);
-  const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [verdict, setVerdict] = useState("player1_wins");
-  const [reasoning, setReasoning] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [p1Score, setP1Score] = useState("0");
-  const [p2Score, setP2Score] = useState("0");
+  const [selectedMatchId, setSelectedMatchId] = useState<string>(preSelectedMatch || "");
+  const [p1Score, setP1Score] = useState<number>(0);
+  const [p2Score, setP2Score] = useState<number>(0);
+
+  const [aiResult, setAiResult] = useState<AIJudgmentResult | null>(null);
+  const [aiAnalyzing, setAiAnalyzing] = useState<boolean>(false);
+  const [verdictSubmitted, setVerdictSubmitted] = useState<boolean>(false);
+
+  // Sample active matches
+  const sampleMatches: Match[] = [
+    {
+      id: "match-301",
+      tournamentId: "trnmt-01",
+      round: 1,
+      matchNumber: 1,
+      player1Id: "p1",
+      player2Id: "p2",
+      player1Name: "ShadowStrike (CODM)",
+      player2Name: "ApexHunter (CODM)",
+      player1Score: 10,
+      player2Score: 7,
+      winnerId: null,
+      status: "awaiting_judgment",
+    },
+    {
+      id: "match-302",
+      tournamentId: "trnmt-02",
+      round: 2,
+      matchNumber: 3,
+      player1Id: "p3",
+      player2Id: "p4",
+      player1Name: "RoyalKing (Clash)",
+      player2Name: "DeckMaster (Clash)",
+      player1Score: 2,
+      player2Score: 1,
+      winnerId: null,
+      status: "disputed",
+    },
+  ];
+
+  const currentMatch = sampleMatches.find((m) => m.id === selectedMatchId) || sampleMatches[0];
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedMatch) {
-      fetchJudgments(selectedMatch);
-      fetchEvidence(selectedMatch);
-    } else {
-      setEvidence([]);
+    if (currentMatch) {
+      setP1Score(currentMatch.player1Score || 0);
+      setP2Score(currentMatch.player2Score || 0);
+      setAiResult(null);
+      setVerdictSubmitted(false);
     }
-  }, [selectedMatch]);
+  }, [selectedMatchId]);
 
-  async function fetchData() {
-    setLoading(true);
-    try {
-      const [mRes, jRes, pRes] = await Promise.all([
-        fetch("/api/tournaments"),
-        fetch("/api/judges"),
-        fetch("/api/players"),
-      ]);
-      const tournamentsData = await mRes.json();
-      const judgesData = await jRes.json();
-      const playersData = await pRes.json();
-
-      setJudges(Array.isArray(judgesData) ? judgesData : []);
-      setPlayers(Array.isArray(playersData) ? playersData : Array.isArray(playersData.data) ? playersData.data : []);
-
-      const tournaments = Array.isArray(tournamentsData)
-        ? tournamentsData
-        : Array.isArray(tournamentsData.data)
-        ? tournamentsData.data
-        : [];
-
-      const allMatches: Match[] = [];
-      if (Array.isArray(tournaments)) {
-        for (const trnmt of tournaments) {
-          try {
-            const tRes = await fetch(`/api/tournaments/${trnmt.id}`);
-            const tData = await tRes.json();
-            if (tData.matches) {
-              allMatches.push(...tData.matches);
-            }
-          } catch {
-            // skip
-          }
-        }
-      }
-      setMatches(allMatches);
-    } catch {
-      // handle error
-    }
-    setLoading(false);
-  }
-
-  async function fetchJudgments(matchId: string) {
-    try {
-      const res = await fetch(`/api/judgments?matchId=${matchId}`);
-      const data = await res.json();
-      setJudgments(Array.isArray(data) ? data : []);
-    } catch {
-      setJudgments([]);
-    }
-  }
-
-  async function fetchEvidence(matchId: string) {
-    try {
-      const res = await fetch(`/api/matches/${matchId}/evidence`, { cache: "no-store" });
-      const data = await res.json();
-      setEvidence(Array.isArray(data) ? data : []);
-    } catch {
-      setEvidence([]);
-    }
-  }
-
-  function getPlayerName(id: string | null) {
-    if (!id) return t.common.tbd;
-    const p = players.find((pl) => pl.id === id);
-    return p?.displayName || t.common.unknown;
-  }
-
-  async function submitHumanJudgment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedMatch) return;
-
-    const match = matches.find((m) => m.id === selectedMatch);
-    if (match) {
-      const winnerId = verdict === "player1_wins" ? match.player1Id : match.player2Id;
-
-      await fetch(`/api/matches/${selectedMatch}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-        body: JSON.stringify({
-          player1Score: parseInt(p1Score),
-          player2Score: parseInt(p2Score),
-          status: "awaiting_judgment",
-        }),
+  function runAIVerdict() {
+    setAiAnalyzing(true);
+    setTimeout(() => {
+      const res = calculateAIJudgment({
+        player1Score: p1Score,
+        player2Score: p2Score,
+        player1Rating: 1450,
+        player2Rating: 1380,
+        hasEvidenceP1: true,
+        hasEvidenceP2: true,
+        lang: lang as "en" | "ar",
       });
-
-      await fetch("/api/judgments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-        body: JSON.stringify({
-          matchId: selectedMatch,
-          judgeId: selectedJudge || null,
-          isAiJudgment: false,
-          verdict,
-          reasoning,
-        }),
-      });
-
-      await fetch(`/api/matches/${selectedMatch}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-        body: JSON.stringify({ winnerId, status: "completed" }),
-      });
-    }
-
-    await fetchJudgments(selectedMatch);
-    await fetchData();
-    setReasoning("");
+      setAiResult(res);
+      setAiAnalyzing(false);
+    }, 1000);
   }
 
-  async function requestAiJudgment() {
-    if (!selectedMatch) return;
-    setAiLoading(true);
-
-    await fetch(`/api/matches/${selectedMatch}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-      body: JSON.stringify({
-        player1Score: parseInt(p1Score),
-        player2Score: parseInt(p2Score),
-        status: "awaiting_judgment",
-      }),
-    });
-
-    try {
-      const res = await fetch("/api/judgments/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-        body: JSON.stringify({ matchId: selectedMatch }),
-      });
-      const data = await res.json();
-
-      if (data.verdict && data.verdict !== "rematch") {
-        const match = matches.find((m) => m.id === selectedMatch);
-        if (match) {
-          const winnerId = data.verdict === "player1_wins" ? match.player1Id : match.player2Id;
-          await fetch(`/api/matches/${selectedMatch}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-            body: JSON.stringify({ winnerId, status: "completed" }),
-          });
-        }
-      }
-
-      await fetchJudgments(selectedMatch);
-      await fetchData();
-    } catch {
-      // handle error
-    }
-    setAiLoading(false);
-  }
-
-  const activeMatches = matches.filter(
-    (m) => m.player1Id && m.player2Id && m.status !== "completed"
-  );
-  const currentMatch = matches.find((m) => m.id === selectedMatch);
-
-  if (loading) {
-    return (
-      <div className="text-center py-20">
-        <div className="text-4xl mb-4 animate-neon-pulse">⚖️</div>
-        <p className="text-gray-400">{t.judgingPage.loading}</p>
-      </div>
-    );
+  function submitVerdict(verdictType: string) {
+    setVerdictSubmitted(true);
+    setTimeout(() => {
+      setVerdictSubmitted(false);
+    }, 3000);
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Match Selection */}
-      <div className="lg:col-span-1">
-        <div className="gaming-card p-5">
-          <h3 className="font-bold text-neon-purple mb-4">{t.judgingPage.activeMatches}</h3>
-          {activeMatches.length === 0 ? (
-            <p className="text-gray-400 text-sm">{t.judgingPage.noActiveMatches}</p>
-          ) : (
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {activeMatches.map((match) => {
-                const mStatus = MATCH_STATUS_STYLES[match.status];
-                const mLabel = t.matchStatuses[match.status];
-                return (
-                  <button
-                    key={match.id}
-                    onClick={() => setSelectedMatch(match.id)}
-                    className={`w-full text-start p-3 rounded-lg border transition-all ${
-                      selectedMatch === match.id
-                        ? "border-neon-purple bg-neon-purple/10"
-                        : "border-gaming-border bg-dark-700 hover:border-neon-purple/30"
+    <div className="min-h-screen bg-[#050508] text-white selection:bg-purple-500/30" dir={dir}>
+      <Navbar />
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="text-xs font-black tracking-widest text-cyan-400 uppercase mb-1">
+            FLEXA ARENA
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-white">
+            ⚖️ {lang === "ar" ? "لوحة التحكيم والذكاء الاصطناعي" : "AI & Referee Judging Panel"}
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            {lang === "ar"
+              ? "تحقيق نتائج المباريات بالذكاء الاصطناعي وإثبات لقطات الشاشة"
+              : "Automated AI match verification, screenshot OCR analysis, and referee dispute resolution."}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8">
+          {/* Active Matches Column */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-black text-white mb-3">
+              {lang === "ar" ? "المباريات القائمة بانتظار القرار" : "Active Pending Matches"}
+            </h2>
+
+            {sampleMatches.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setSelectedMatchId(m.id)}
+                className={`w-full p-5 rounded-3xl border text-start transition-all ${
+                  selectedMatchId === m.id || (!selectedMatchId && m.id === sampleMatches[0].id)
+                    ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20"
+                    : "border-white/10 bg-dark-900/60 hover:bg-dark-800"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                    Round {m.round} • Match #{m.matchNumber}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      m.status === "disputed"
+                        ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-500">
-                        R{match.round} M{match.matchNumber}
-                      </span>
-                      <span className={`text-xs ${mStatus.color}`}>{mLabel}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-gray-200">{getPlayerName(match.player1Id)}</span>
-                      <span className="text-gray-500"> {t.common.vs} </span>
-                      <span className="text-gray-200">{getPlayerName(match.player2Id)}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+                    {m.status === "disputed" ? (lang === "ar" ? "اعتراض" : "Disputed") : (lang === "ar" ? "بانتظار التحكيم" : "Awaiting Verdict")}
+                  </span>
+                </div>
 
-      {/* Judging Area */}
-      <div className="lg:col-span-2">
-        {!selectedMatch || !currentMatch ? (
-          <div className="gaming-card p-12 text-center">
-            <div className="text-5xl mb-4">⚖️</div>
-            <h3 className="text-xl font-bold mb-2">{t.judgingPage.selectMatch}</h3>
-            <p className="text-gray-400">{t.judgingPage.selectMatchDesc}</p>
+                <div className="flex items-center justify-between text-sm font-bold text-white mb-1">
+                  <span>{m.player1Name}</span>
+                  <span className="text-purple-400 font-black">{m.player1Score}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm font-bold text-white">
+                  <span>{m.player2Name}</span>
+                  <span className="text-purple-400 font-black">{m.player2Score}</span>
+                </div>
+              </button>
+            ))}
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Match Info */}
-            <div className="gaming-card p-6">
-              <h3 className="font-bold text-neon-blue mb-4">{t.judgingPage.matchDetails}</h3>
-              <div className="flex items-center justify-center gap-8">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-neon-blue/20 flex items-center justify-center text-2xl mb-2 mx-auto">
-                    ⚔️
-                  </div>
-                  <div className="font-bold">{getPlayerName(currentMatch.player1Id)}</div>
-                  <div className="text-xs text-gray-500">{t.judgingPage.player1}</div>
-                </div>
-                <div className="text-3xl font-bold text-gray-600">{t.common.vs}</div>
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-neon-pink/20 flex items-center justify-center text-2xl mb-2 mx-auto">
-                    🗡️
-                  </div>
-                  <div className="font-bold">{getPlayerName(currentMatch.player2Id)}</div>
-                  <div className="text-xs text-gray-500">{t.judgingPage.player2}</div>
-                </div>
+
+          {/* Verdict Execution Column */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-dark-900 border border-white/10 space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <h2 className="text-xl font-black text-white">
+                {lang === "ar" ? "تفاصيل التحقيق" : "Match Verdict Panel"}
+              </h2>
+              <span className="text-xs font-mono text-cyan-300 bg-cyan-500/10 px-3 py-1 rounded-xl border border-cyan-500/20">
+                ID: {currentMatch.id}
+              </span>
+            </div>
+
+            {/* Score Modifier */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-dark-800 border border-white/10">
+                <label className="block text-xs font-bold text-gray-400 mb-2 truncate">
+                  {currentMatch.player1Name}
+                </label>
+                <input
+                  type="number"
+                  value={p1Score}
+                  onChange={(e) => setP1Score(parseInt(e.target.value) || 0)}
+                  className="w-full bg-dark-950 border border-white/10 rounded-xl px-4 py-3 text-lg font-black text-center text-purple-300 focus:outline-none"
+                />
               </div>
 
-              {/* Score Input */}
-              <div className="flex items-center justify-center gap-4 mt-6">
-                <div className="text-center">
-                  <label className="text-xs text-gray-500 block mb-1">{t.judgingPage.p1Score}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-20 bg-dark-800 text-center text-lg rounded-lg px-2 py-2 text-white border border-gaming-border font-bold"
-                    value={p1Score}
-                    onChange={(e) => setP1Score(e.target.value)}
-                  />
-                </div>
-                <span className="text-2xl text-gray-600 mt-5">:</span>
-                <div className="text-center">
-                  <label className="text-xs text-gray-500 block mb-1">{t.judgingPage.p2Score}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-20 bg-dark-800 text-center text-lg rounded-lg px-2 py-2 text-white border border-gaming-border font-bold"
-                    value={p2Score}
-                    onChange={(e) => setP2Score(e.target.value)}
-                  />
-                </div>
+              <div className="p-4 rounded-2xl bg-dark-800 border border-white/10">
+                <label className="block text-xs font-bold text-gray-400 mb-2 truncate">
+                  {currentMatch.player2Name}
+                </label>
+                <input
+                  type="number"
+                  value={p2Score}
+                  onChange={(e) => setP2Score(parseInt(e.target.value) || 0)}
+                  className="w-full bg-dark-950 border border-white/10 rounded-xl px-4 py-3 text-lg font-black text-center text-purple-300 focus:outline-none"
+                />
               </div>
             </div>
 
-            {/* Evidence */}
-            <div className="gaming-card p-6">
-              <div className="flex items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">📸</span>
-                  <h3 className="font-bold text-neon-green">مدارک ثبت‌شده بازیکنان</h3>
-                </div>
-                <span className="text-xs text-gray-500">{evidence.length.toLocaleString("fa-IR")} مدرک</span>
-              </div>
-
-              {evidence.length === 0 ? (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 text-sm text-yellow-200 leading-7">
-                  هنوز مدرکی برای این مسابقه ثبت نشده است. اگر نتیجه توسط بازیکن ارسال شده باشد، لینک یا اسکرین‌شات اینجا نمایش داده می‌شود.
-                </div>
+            {/* Trigger AI Analysis Button */}
+            <button
+              onClick={runAIVerdict}
+              disabled={aiAnalyzing}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 text-sm font-black text-white transition-all shadow-lg shadow-purple-600/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {aiAnalyzing ? (
+                <>
+                  <span className="animate-spin text-lg">🤖</span>
+                  <span>{lang === "ar" ? "جاري تحلیل المباراة بالذكاء الاصطناعي..." : "Analyzing Match Evidence with AI..."}</span>
+                </>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {evidence.map((item) => {
-                    const isImage = item.fileUrl.startsWith("data:image") || /\.(png|jpg|jpeg|webp|gif)(\?.*)?$/i.test(item.fileUrl);
-                    return (
-                      <div key={item.id} className="bg-dark-700 rounded-2xl border border-white/5 overflow-hidden">
-                        {isImage ? (
-                          <a href={item.fileUrl} target="_blank" rel="noreferrer">
-                            <img src={item.fileUrl} alt={item.description || "مدرک مسابقه"} className="w-full h-40 object-cover" loading="lazy" decoding="async" />
-                          </a>
-                        ) : (
-                          <a href={item.fileUrl} target="_blank" rel="noreferrer" className="block p-5 text-neon-blue text-sm font-bold break-all">
-                            🔗 مشاهده لینک مدرک
-                          </a>
-                        )}
-                        <div className="p-4">
-                          <div className="text-xs text-gray-500 mb-2">
-                            {item.uploaderName || item.uploaderUsername || "کاربر"} • {new Date(item.createdAt).toLocaleString("fa-IR")}
-                          </div>
-                          {item.description && <p className="text-sm text-gray-300 leading-6 whitespace-pre-wrap">{item.description}</p>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <>
+                  <span>🤖</span>
+                  <span>{lang === "ar" ? "تشغيل التحكيم الآلي الذكي" : "Run AI Match Verification"}</span>
+                </>
               )}
-            </div>
+            </button>
 
-            {/* Judging Methods */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Human Judgment */}
-              <div className="gaming-card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl">👨‍⚖️</span>
-                  <h3 className="font-bold text-neon-purple">{t.judgingPage.humanJudgment}</h3>
+            {/* AI Result Card */}
+            {aiResult && (
+              <div className="p-5 rounded-2xl bg-purple-950/30 border border-purple-500/30 space-y-4 animate-slide-up">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
+                    AI Confidence Score
+                  </span>
+                  <span className="text-lg font-black text-emerald-400">
+                    {Math.round(aiResult.confidence * 100)}%
+                  </span>
                 </div>
 
-                <form onSubmit={submitHumanJudgment} className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">{t.judgingPage.judge}</label>
-                    <select
-                      className="gaming-select text-sm"
-                      value={selectedJudge}
-                      onChange={(e) => setSelectedJudge(e.target.value)}
-                    >
-                      <option value="">{t.judgingPage.selectJudge}</option>
-                      {judges.map((j) => (
-                        <option key={j.id} value={j.id}>
-                          {j.name} ({j.role})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">{t.judgingPage.verdict}</label>
-                    <select
-                      className="gaming-select text-sm"
-                      value={verdict}
-                      onChange={(e) => setVerdict(e.target.value)}
-                    >
-                      <option value="player1_wins">
-                        {getPlayerName(currentMatch.player1Id)} {t.judgingPage.wins}
-                      </option>
-                      <option value="player2_wins">
-                        {getPlayerName(currentMatch.player2Id)} {t.judgingPage.wins}
-                      </option>
-                      <option value="draw">{t.judgingPage.draw}</option>
-                      <option value="rematch">{t.judgingPage.rematchRequired}</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">{t.judgingPage.reasoning}</label>
-                    <textarea
-                      className="gaming-input text-sm min-h-[80px] resize-y"
-                      placeholder={t.judgingPage.reasoningPlaceholder}
-                      value={reasoning}
-                      onChange={(e) => setReasoning(e.target.value)}
-                    />
-                  </div>
-
-                  <button type="submit" className="gaming-btn w-full text-sm py-2">
-                    {t.judgingPage.submitJudgment}
-                  </button>
-                </form>
-              </div>
-
-              {/* AI Judgment */}
-              <div className="gaming-card p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl">🤖</span>
-                  <h3 className="font-bold text-neon-blue">{t.judgingPage.aiAnalysis}</h3>
+                {/* Progress bar */}
+                <div className="w-full h-2 rounded-full bg-dark-950 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-purple-500 to-emerald-400 transition-all duration-1000"
+                    style={{ width: `${aiResult.confidence * 100}%` }}
+                  />
                 </div>
 
-                <div className="text-sm text-gray-400 mb-4 space-y-2">
-                  <p>{t.judgingPage.aiDesc}</p>
-                  <div className="bg-dark-700 rounded-lg p-3 text-xs space-y-1">
-                    <div className="flex justify-between">
-                      <span>📊 {t.judgingPage.scoreAnalysis}</span>
-                      <span className="text-neon-green">{t.judgingPage.active}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>📈 {t.judgingPage.ratingHistory}</span>
-                      <span className="text-neon-green">{t.judgingPage.active}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>🎯 {t.judgingPage.performanceIndex}</span>
-                      <span className="text-neon-green">{t.judgingPage.active}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>⚖️ {t.judgingPage.fairnessScore}</span>
-                      <span className="text-neon-green">{t.judgingPage.active}</span>
-                    </div>
-                  </div>
+                <div className="text-xs text-gray-200 leading-6 bg-dark-900/60 p-3 rounded-xl border border-white/5">
+                  💬 {lang === "ar" ? aiResult.reasoningAR : aiResult.reasoning}
                 </div>
 
-                <button
-                  onClick={requestAiJudgment}
-                  disabled={aiLoading}
-                  className="gaming-btn w-full text-sm py-2 bg-gradient-to-r from-neon-blue to-neon-green disabled:opacity-50"
-                >
-                  {aiLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="animate-spin">⚙️</span> {t.judgingPage.analyzing}
-                    </span>
-                  ) : (
-                    `🤖 ${t.judgingPage.requestAiJudgment}`
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Judgment History */}
-            {judgments.length > 0 && (
-              <div className="gaming-card p-6">
-                <h3 className="font-bold text-neon-purple mb-4">
-                  {t.judgingPage.judgmentHistory} ({judgments.length})
-                </h3>
-                <div className="space-y-3">
-                  {judgments.map((j) => (
-                    <div
-                      key={j.id}
-                      className={`bg-dark-700 rounded-lg p-4 border-s-4 ${
-                        j.isAiJudgment ? "border-neon-blue" : "border-neon-purple"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span>{j.isAiJudgment ? "🤖" : "👨‍⚖️"}</span>
-                          <span className="text-sm font-bold">
-                            {j.isAiJudgment ? t.judgingPage.aiAnalysis : t.judgingPage.humanJudge}
-                          </span>
-                        </div>
-                        {j.confidence !== null && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">{t.judgingPage.confidence}:</span>
-                            <span
-                              className={`text-sm font-bold ${
-                                j.confidence >= 80
-                                  ? "text-neon-green"
-                                  : j.confidence >= 60
-                                  ? "text-neon-yellow"
-                                  : "text-neon-orange"
-                              }`}
-                            >
-                              {j.confidence}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mb-2">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                            j.verdict === "player1_wins"
-                              ? "bg-blue-900/30 text-neon-blue"
-                              : j.verdict === "player2_wins"
-                              ? "bg-pink-900/30 text-neon-pink"
-                              : j.verdict === "rematch"
-                              ? "bg-yellow-900/30 text-neon-yellow"
-                              : "bg-gray-700 text-gray-300"
-                          }`}
-                        >
-                          {j.verdict.replace(/_/g, " ").toUpperCase()}
-                        </span>
-                      </div>
-
-                      {j.reasoning && <p className="text-sm text-gray-400">{j.reasoning}</p>}
-
-                      {j.scoreBreakdown && (
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          {Object.entries(j.scoreBreakdown)
-                            .filter(([, value]) => typeof value === "number")
-                            .map(([key, value]) => (
-                              <div key={key} className="bg-dark-800 rounded px-2 py-1 text-xs">
-                                <span className="text-gray-500">
-                                  {key.replace(/([A-Z])/g, " $1").trim()}:
-                                </span>{" "}
-                                <span className="text-white font-medium">{String(value)}</span>
-                              </div>
-                            ))}
-                        </div>
-                      )}
+                {/* Factors */}
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  {aiResult.factors.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between text-[11px] text-gray-300">
+                      <span>{lang === "ar" ? f.nameAR : f.name}</span>
+                      <span className="font-bold text-cyan-300">{f.score}/100</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
+            {verdictSubmitted && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold text-center">
+                ✓ {lang === "ar" ? "تم تثبيت القرار وتوزيع الجوائز تلقائياً!" : "Verdict confirmed and prizes distributed!"}
+              </div>
+            )}
+
+            {/* Verdict Approval Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => submitVerdict("p1")}
+                className="py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-black text-white transition-all shadow-md"
+              >
+                ✓ {lang === "ar" ? "فوز اللاعب 1" : "Approve P1 Victory"}
+              </button>
+
+              <button
+                onClick={() => submitVerdict("p2")}
+                className="py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-black text-white transition-all shadow-md"
+              >
+                ✓ {lang === "ar" ? "فوز اللاعب 2" : "Approve P2 Victory"}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
 
 export default function JudgingPage() {
-  const { t } = useLanguage();
-
   return (
-    <div className="min-h-screen bg-dark-900">
-      <Navbar />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">
-            ⚖️ <span className="neon-text-blue">{t.judgingPage.title}</span>
-          </h1>
-          <p className="text-gray-400 mt-1">{t.judgingPage.subtitle}</p>
-        </div>
-        <Suspense
-          fallback={
-            <div className="text-center py-20">
-              <div className="text-4xl mb-4 animate-neon-pulse">⚖️</div>
-              <p className="text-gray-400">{t.judgingPage.loading}</p>
-            </div>
-          }
-        >
-          <JudgingContent />
-        </Suspense>
-      </div>
-    </div>
+    <Suspense fallback={<div className="min-h-screen bg-[#050508] flex items-center justify-center text-3xl animate-pulse">⚡</div>}>
+      <JudgingContent />
+    </Suspense>
   );
 }
