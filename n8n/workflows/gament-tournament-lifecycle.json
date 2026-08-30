@@ -1,0 +1,199 @@
+{
+  "name": "Gament - Tournament Lifecycle (Created + 24h + 1h Reminders)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gament-tournament-created",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-created",
+      "name": "Tournament Created Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [140, 220]
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = items[0].json.data || items[0].json;\n\nconst gameLabels = { cod_mobile: '🎯 کالاف موبایل', fortnite: '🏗️ فورتنایت', clash_royale: '👑 کلش رویال' };\nconst game = gameLabels[data.game] || data.game;\nconst start = data.startDate ? new Date(data.startDate) : null;\nconst startStr = start ? start.toLocaleString('fa-IR', {dateStyle:'medium', timeStyle:'short', timeZone:'Asia/Tehran'}) : 'اعلام می‌شود';\n\nconst text = [\n  '🏆 <b>تورنومنت جدید در گیمنت</b>',\n  '',\n  `🔥 <b>${data.name}</b>`,\n  `🎮 بازی: <b>${game}</b>`,\n  data.gameMode ? `🕹 مود: ${data.gameMode}` : '',\n  `👥 ظرفیت: <b>${data.maxPlayers || 16} نفر</b>`,\n  `💳 ورودی: <b>${data.entryFee || 'رایگان'}</b>`,\n  data.prizePool ? `🎁 جایزه: <b>${data.prizePool}</b>` : '',\n  `⏰ شروع: <b>${startStr}</b>`,\n  '',\n  'برای ثبت‌نام و جزئیات بیشتر وارد اپ شوید 👇'\n].filter(Boolean).join('\\n');\n\nconst now = new Date();\nlet hoursUntil = null, wait24h = 0, wait1h = 0;\nif (start) {\n  const diffMs = start.getTime() - now.getTime();\n  hoursUntil = Math.round(diffMs / (1000*60*60));\n  wait24h = Math.max(0, diffMs - (24*60*60*1000));\n  wait1h  = Math.max(0, diffMs - (1*60*60*1000));\n}\n\nreturn [{\n  json: {\n    ...data,\n    telegramText: text,\n    channelId: process.env.TELEGRAM_CHANNEL_ID || '@Flexa_games',\n    appUrl: process.env.APP_URL || 'https://www.gament1.ir',\n    hoursUntilStart: hoursUntil,\n    waitFor24h: Math.floor(wait24h / 1000),\n    waitFor1h: Math.floor(wait1h / 1000),\n    hasStartDate: !!start\n  }\n}];"
+      },
+      "id": "format-and-calc",
+      "name": "Format Announcement + Calculate Wait Times",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [380, 220]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.channelId }}",
+        "text": "={{ $json.telegramText }}",
+        "additionalFields": {
+          "parseMode": "HTML",
+          "disableWebPagePreview": false,
+          "replyMarkup": "={{ JSON.stringify({ inline_keyboard: [[{ text: \"🏆 ثبت‌نام در تورنومنت\", url: $json.appUrl + \"/tournaments/\" + $json.id }]] }) }}"
+        }
+      },
+      "id": "post-announcement",
+      "name": "Post to Telegram Channel",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [620, 220],
+      "credentials": {
+        "telegramApi": {
+          "id": "gament-telegram",
+          "name": "Gament Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{ $json.hasStartDate }}", "value2": true }]
+        }
+      },
+      "id": "if-has-date",
+      "name": "Has Start Date?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [380, 420]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.waitFor24h }}",
+        "unit": "seconds"
+      },
+      "id": "wait-24h",
+      "name": "Wait 24 hours before start",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [620, 340]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.waitFor1h }}",
+        "unit": "seconds"
+      },
+      "id": "wait-1h",
+      "name": "Wait 1 hour before start",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [620, 500]
+    },
+    {
+      "parameters": {
+        "functionCode": "const d = items[0].json;\nconst txt = [\n  '⏰ <b>یادآوری ۲۴ ساعته</b>',\n  '',\n  `🔥 <b>${d.name}</b>`,\n  `🎮 ${d.game}`,\n  `⏰ کمتر از ۲۴ ساعت تا شروع`,\n  '',\n  'ثبت‌نام کن 👇'\n].join('\\n');\nreturn [{ json: { ...d, reminderText: txt, reminderType: '24h' } }];"
+      },
+      "id": "format-24h",
+      "name": "Format 24h Reminder",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [860, 340]
+    },
+    {
+      "parameters": {
+        "functionCode": "const d = items[0].json;\nconst txt = [\n  '🚨 <b>یادآوری نهایی - ۱ ساعت مانده</b>',\n  '',\n  `🔥 <b>${d.name}</b>`,\n  `🎮 ${d.game}`,\n  `⏰ فقط ۱ ساعت تا شروع!`,\n  '',\n  'به لابی بروید 👇'\n].join('\\n');\nreturn [{ json: { ...d, reminderText: txt, reminderType: '1h' } }];"
+      },
+      "id": "format-1h",
+      "name": "Format 1h Reminder",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [860, 500]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.channelId }}",
+        "text": "={{ $json.reminderText }}",
+        "additionalFields": {
+          "parseMode": "HTML",
+          "disableWebPagePreview": false,
+          "replyMarkup": "={{ JSON.stringify({ inline_keyboard: [[{ text: \"🏆 ورود به تورنومنت\", url: $json.appUrl + \"/tournaments/\" + $json.id }]] }) }}"
+        }
+      },
+      "id": "send-24h",
+      "name": "Send 24h Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1080, 340],
+      "credentials": {
+        "telegramApi": {
+          "id": "gament-telegram",
+          "name": "Gament Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.channelId }}",
+        "text": "={{ $json.reminderText }}",
+        "additionalFields": {
+          "parseMode": "HTML",
+          "disableWebPagePreview": false,
+          "replyMarkup": "={{ JSON.stringify({ inline_keyboard: [[{ text: \"🚀 ورود به لابی\", url: $json.appUrl + \"/tournaments/\" + $json.id }]] }) }}"
+        }
+      },
+      "id": "send-1h",
+      "name": "Send 1h Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1080, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "gament-telegram",
+          "name": "Gament Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseData": "{ \"success\": true, \"announced\": true, \"remindersScheduled\": true }"
+      },
+      "id": "respond",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [860, 220]
+    }
+  ],
+  "connections": {
+    "Tournament Created Webhook": {
+      "main": [[{ "node": "Format Announcement + Calculate Wait Times", "type": "main", "index": 0 }]]
+    },
+    "Format Announcement + Calculate Wait Times": {
+      "main": [
+        [{ "node": "Post to Telegram Channel", "type": "main", "index": 0 }, { "node": "Has Start Date?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Post to Telegram Channel": {
+      "main": [[{ "node": "Success Response", "type": "main", "index": 0 }]]
+    },
+    "Has Start Date?": {
+      "main": [
+        [{ "node": "Wait 24 hours before start", "type": "main", "index": 0 }, { "node": "Wait 1 hour before start", "type": "main", "index": 0 }],
+        [{ "node": "Success Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 24 hours before start": {
+      "main": [[{ "node": "Format 24h Reminder", "type": "main", "index": 0 }]]
+    },
+    "Wait 1 hour before start": {
+      "main": [[{ "node": "Format 1h Reminder", "type": "main", "index": 0 }]]
+    },
+    "Format 24h Reminder": {
+      "main": [[{ "node": "Send 24h Reminder", "type": "main", "index": 0 }]]
+    },
+    "Format 1h Reminder": {
+      "main": [[{ "node": "Send 1h Reminder", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "Asia/Tehran",
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "gament-lifecycle-complete"
+  },
+  "tags": ["gament", "tournament", "telegram", "reminders", "lifecycle"]
+}

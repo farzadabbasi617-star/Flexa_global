@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>پیش‌نمایش افکت‌های 3D گیمنت</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: #050508;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    overflow-x: hidden;
+  }
+  .en-font { font-family: Impact, 'Arial Black', sans-serif; letter-spacing: -0.03em; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 60px; position: relative; }
+
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 22px; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo-badge {
+    width:46px; height:46px; border-radius:14px;
+    background: linear-gradient(135deg,#a855f7,#22d3ee);
+    display:grid; place-items:center; font-weight:900; font-size:20px;
+    box-shadow: 0 0 22px rgba(168,85,247,.55);
+  }
+  .brand-title { font-weight:900; font-size:20px; }
+  .brand-sub { font-size:10px; letter-spacing:.2em; color:#67e8f9; font-weight:800; }
+
+  .note {
+    background: rgba(168,85,247,.12); border:1px solid rgba(168,85,247,.3);
+    padding: 10px 14px; border-radius: 14px; font-size:12px; color:#e9d5ff;
+    margin-bottom: 20px; line-height:1.8;
+  }
+
+  /* ---------- HERO 3D SCENE ---------- */
+  .hero-perspective { perspective: 1200px; margin-bottom: 26px; }
+  .hero {
+    position: relative;
+    border-radius: 34px;
+    overflow: hidden;
+    min-height: 380px;
+    border: 1px solid rgba(216,180,254,.25);
+    background:
+      radial-gradient(circle at 78% 22%, rgba(188,0,255,.55), transparent 40%),
+      radial-gradient(circle at 20% 12%, rgba(0,210,255,.2), transparent 42%),
+      linear-gradient(135deg, #14101d 0%, #0b0b12 45%, #1c0630 100%);
+    box-shadow: 0 0 70px rgba(124,58,237,.25);
+    transform-style: preserve-3d;
+    transition: transform .15s ease-out;
+    will-change: transform;
+  }
+  canvas.particles { position:absolute; inset:0; pointer-events:none; }
+  .orb { position:absolute; border-radius:999px; filter: blur(40px); pointer-events:none; transition: transform .15s ease-out; }
+  .orb1 { width:220px; height:220px; top:-60px; left:-50px; background: rgba(168,85,247,.35); }
+  .orb2 { width:120px; height:120px; top:30px; right:20px; background: rgba(34,211,238,.28); }
+
+  .hero-content {
+    position: relative; z-index: 3; padding: 26px 24px;
+    display:flex; flex-direction:column; justify-content:flex-end; height:380px;
+    transform: translateZ(40px);
+  }
+  .pill {
+    display:inline-flex; align-items:center; gap:8px; width:fit-content;
+    background: rgba(168,85,247,.18); border:1px solid rgba(216,180,254,.3);
+    padding:6px 14px; border-radius:999px; font-size:10px; font-weight:800; margin-bottom:16px;
+    color:#f3e8ff;
+  }
+  .dot { width:8px;height:8px;border-radius:999px;background:#34d399; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .hero h1 { font-size:34px; line-height:1.15; font-weight:900; margin: 0 0 14px; }
+  .hero p { font-size:13px; color:#cbd5e1; line-height:1.9; margin:0 0 20px; max-width: 320px; }
+
+  .btn-row { display:flex; gap:10px; margin-bottom: 22px; }
+  .btn-primary {
+    position:relative; overflow:hidden;
+    background: linear-gradient(135deg,#a855f7,#7c3aed);
+    padding: 13px 22px; border-radius: 16px; font-weight:900; font-size:13px;
+    box-shadow: 0 6px 20px rgba(168,85,247,.45);
+    cursor:pointer; border:1px solid rgba(255,255,255,.15); color:#fff;
+    transition: transform .15s;
+  }
+  .btn-primary:active { transform: scale(.96); }
+  .btn-ghost {
+    padding: 13px 22px; border-radius: 16px; font-weight:900; font-size:13px;
+    background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#fff;
+    cursor:pointer;
+  }
+  .magnetic { display:inline-block; transition: transform .12s ease-out; will-change: transform; }
+
+  .stat-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; }
+  .stat {
+    background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+    border-radius: 14px; padding: 10px; text-align:center; backdrop-filter: blur(6px);
+  }
+  .stat b { display:block; font-size:18px; color:#e9d5ff; font-weight:900; }
+  .stat span { font-size:10px; color:#94a3b8; }
+
+  /* ---------- SECTION TITLE ---------- */
+  .sec-title { display:flex; align-items:center; justify-content:space-between; margin: 6px 0 14px; }
+  .sec-eyebrow { font-size:10px; letter-spacing:.25em; color:#c084fc; font-weight:900; margin-bottom:4px; }
+  .sec-title h2 { margin:0; font-size:20px; font-weight:900; }
+  .sec-link { font-size:11px; color:#67e8f9; font-weight:900; }
+
+  /* ---------- TILT CARDS ---------- */
+  .tilt-stage { perspective: 1000px; margin-bottom: 16px; }
+  .tilt-card {
+    position:relative; border-radius: 26px; overflow:hidden; min-height:170px;
+    border:1px solid rgba(255,255,255,.1);
+    transform-style: preserve-3d; transition: transform .12s ease-out, box-shadow .3s;
+    will-change: transform; cursor:pointer;
+  }
+  .tilt-card .glare {
+    position:absolute; inset:0; opacity:0; pointer-events:none;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.3), transparent 46%);
+    transition: opacity .25s; mix-blend-mode: overlay;
+  }
+  .tilt-card:hover .glare { opacity:1; }
+  .tilt-inner { position:relative; z-index:2; padding:20px; height:100%; display:flex; flex-direction:column; justify-content:space-between; transform: translateZ(24px); }
+
+  .game-card1 { background: radial-gradient(circle at 72% 32%, rgba(255,140,0,.4), transparent 55%), linear-gradient(135deg,#090a10,#151720 48%,#3a220d); box-shadow: 0 0 40px rgba(249,115,22,.25); }
+  .game-card2 { background: radial-gradient(circle at 75% 25%, rgba(188,0,255,.38), transparent 55%), linear-gradient(135deg,#090a10,#151022 52%,#28103a); box-shadow: 0 0 40px rgba(188,0,255,.28); }
+  .game-card3 { background: radial-gradient(circle at 74% 32%, rgba(0,210,255,.34), transparent 55%), linear-gradient(135deg,#080a12,#101827 52%,#09283a); box-shadow: 0 0 40px rgba(34,211,238,.22); }
+
+  .game-icon { width:56px; height:56px; border-radius:20px; display:grid; place-items:center; font-size:26px; font-weight:900; box-shadow: 0 8px 22px rgba(0,0,0,.4); }
+  .gi1 { background: linear-gradient(135deg,#f97316,#dc2626); }
+  .gi2 { background: linear-gradient(135deg,#a855f7,#db2777); }
+  .gi3 { background: linear-gradient(135deg,#22d3ee,#2563eb); }
+  .game-name { font-size:26px; font-weight:900; font-style:italic; margin: 14px 0 4px; }
+  .game-sub { font-size:11px; color:#cbd5e1; }
+  .rooms-tag { font-size:9px; letter-spacing:.2em; color:rgba(255,255,255,.45); font-weight:900; }
+
+  /* ---------- REVEAL ---------- */
+  .reveal { opacity:0; transform: translateY(26px); transition: opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1); }
+  .reveal.in { opacity:1; transform: translateY(0); }
+
+  /* ---------- TOURNAMENT CARD ---------- */
+  .t-card {
+    position:relative; border-radius:28px; overflow:hidden; border:1px solid rgba(255,255,255,.08);
+    background:#0f0f13; box-shadow: 0 24px 60px rgba(0,0,0,.4); margin-bottom:18px;
+  }
+  .t-banner { position:relative; height:130px; background: radial-gradient(circle at 75% 28%, rgba(255,140,0,.42), transparent 55%), linear-gradient(135deg,#090a10,#3a220d); }
+  .t-banner::after { content:""; position:absolute; inset:0; background: linear-gradient(to top,#0f0f13,rgba(0,0,0,.25),transparent); }
+  .t-name { position:absolute; bottom:14px; right:18px; font-size:19px; font-weight:900; z-index:2; }
+  .t-badge { position:absolute; top:14px; right:14px; background:rgba(0,0,0,.6); backdrop-filter: blur(8px); padding:6px 12px; border-radius:14px; font-size:10px; font-weight:800; border:1px solid rgba(255,255,255,.12); z-index:2; }
+  .t-body { padding:16px 18px; }
+  .t-prize { display:flex; align-items:center; justify-content:space-between; background: linear-gradient(90deg, rgba(234,179,8,.12), transparent); border:1px solid rgba(234,179,8,.25); border-radius:16px; padding:12px 14px; margin-bottom:12px; }
+  .t-prize b { color:#facc15; font-size:16px; }
+  .t-prize small { display:block; color:rgba(234,179,8,.6); font-size:10px; margin-top:2px;}
+  .t-row { display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:10px 14px; font-size:12px; margin-bottom:10px; }
+  .t-cta { display:flex; align-items:center; justify-content:space-between; }
+  .t-cta button { background: linear-gradient(90deg,#7c3aed,#2563eb); border:none; color:#fff; font-weight:900; padding:12px 20px; border-radius:16px; font-size:12px; cursor:pointer; }
+
+  footer.note-foot { text-align:center; font-size:11px; color:#64748b; margin-top: 30px; line-height:2; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="reveal in">
+    <div class="logo">
+      <div class="logo-badge">G</div>
+      <div>
+        <div class="brand-sub">GAMENT ESPORTS</div>
+        <div class="brand-title">گیمنت</div>
+      </div>
+    </div>
+    <div style="width:44px;height:44px;border-radius:14px;background:rgba(168,85,247,.15);border:1px solid rgba(216,180,254,.25);display:grid;place-items:center;">💼</div>
+  </header>
+
+  <div class="note">
+    🎮 این یک پیش‌نمایش تعاملی مستقل از افکت‌های ۳D/انیمیشنی است — موس را روی کارت‌ها حرکت بده و اسکرول کن تا افکت‌ها را ببینی. نسخه واقعی داخل کدهای Next.js پروژه پیاده‌سازی شده.
+  </div>
+
+  <!-- HERO -->
+  <div class="hero-perspective">
+    <div class="hero" id="hero">
+      <canvas class="particles" id="particles"></canvas>
+      <div class="orb orb1" id="orb1"></div>
+      <div class="orb orb2" id="orb2"></div>
+      <div class="hero-content">
+        <div class="pill"><span class="dot"></span> فصل جدید رقابت‌ها فعال است</div>
+        <h1>آرنای حرفه‌ای<br/>تورنومنت‌های موبایل</h1>
+        <p>ثبت‌نام سریع، کیف پول امن، چک‌این، لابی اختصاصی، ثبت نتیجه، داوری قابل پیگیری و اخبار گیمینگ در یک پلتفرم فارسی.</p>
+        <div class="btn-row">
+          <span class="magnetic" data-magnet><button class="btn-primary">ورود به تورنومنت‌ها</button></span>
+          <span class="magnetic" data-magnet><button class="btn-ghost">ساخت حساب رایگان</button></span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat"><b>۳</b><span>بازی اصلی</span></div>
+          <div class="stat"><b>AI</b><span>داوری هوشمند</span></div>
+          <div class="stat"><b>۲۴/۷</b><span>پشتیبانی</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME CARDS -->
+  <div class="reveal" data-reveal>
+    <div class="sec-title">
+      <div>
+        <div class="sec-eyebrow">CHOOSE YOUR GAME</div>
+        <h2>بازی محبوبت را انتخاب کن</h2>
+      </div>
+      <span class="sec-link">همه روم‌ها ←</span>
+    </div>
+  </div>
+
+  <div class="reveal" data-reveal style="transition-delay:.05s">
+    <div class="tilt-stage">
+      <div class="tilt-card game-card1" data-tilt>
+        <div class="glare"></div>
+        <div class="tilt-inner">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="game-icon gi1">🎯</div>
+            <span class="rooms-tag">ROOMS</span>
+          </div>
+          <div style="text-align:right;">
+            <div class="game-name en-font">COD MOBILE</div>
+            <div class="game-sub">روم‌ها و تورنومنت‌های کالاف موبایل</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reveal" data-reveal style="transition-delay:.1s">
+    <div class="tilt-stage">
+      <div class="tilt-card game-card2" data-tilt>
+        <div class="glare"></div>
+        <div class="tilt-inner">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="game-icon gi2">🏗️</div>
+            <span class="rooms-tag">ROOMS</span>
+          </div>
+          <div style="text-align:right;">
+            <div class="game-name en-font">FORTNITE</div>
+            <div class="game-sub">روم‌ها و تورنومنت‌های فورتنایت</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reveal" data-reveal style="transition-delay:.15s">
+    <div class="tilt-stage">
+      <div class="tilt-card game-card3" data-tilt>
+        <div class="glare"></div>
+        <div class="tilt-inner">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="game-icon gi3">⚔️</div>
+            <span class="rooms-tag">ROOMS</span>
+          </div>
+          <div style="text-align:right;">
+            <div class="game-name en-font">CLASH ROYALE</div>
+            <div class="game-sub">روم‌ها و تورنومنت‌های کلش رویال</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOURNAMENT CARD -->
+  <div class="reveal" data-reveal>
+    <div class="sec-title"><div><div class="sec-eyebrow">NEXT TOURNAMENT</div><h2>کارت تورنومنت (Tilt 3D)</h2></div></div>
+  </div>
+  <div class="reveal" data-reveal style="transition-delay:.05s">
+    <div class="tilt-stage">
+      <div class="tilt-card t-card" data-tilt style="border-radius:28px;">
+        <div class="glare"></div>
+        <div class="t-banner">
+          <div class="t-badge">۱۲ نفر باقی‌مانده</div>
+          <div class="t-name en-font">CODM ARENA CUP</div>
+        </div>
+        <div class="t-body">
+          <div class="t-prize">
+            <div><small>جایزه کل</small><b>۵٬۰۰۰٬۰۰۰ تومان</b></div>
+            <span style="font-size:26px;">🏆</span>
+          </div>
+          <div class="t-row"><span style="color:#94a3b8;">زمان شروع</span><b>پنجشنبه، ۲۱:۰۰</b></div>
+          <div class="t-cta">
+            <div><b style="font-size:18px;">رایگان</b></div>
+            <button>ثبت‌نام ←</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="note-foot">پیش‌نمایش افکت‌های سه‌بعدی و انیمیشنی گیمنت<br/>Tilt Cards • Particle Field • Scroll Reveal • Magnetic Buttons</footer>
+</div>
+
+<script>
+  // ---------- Particle field ----------
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  const hero = document.getElementById('hero');
+  let W, H, particles = [];
+  const colors = ['#a855f7', '#22d3ee', '#facc15'];
+
+  function resize() {
+    W = hero.clientWidth; H = hero.clientHeight;
+    canvas.width = W; canvas.height = H;
+  }
+  function initParticles() {
+    particles = Array.from({length: 40}).map(() => {
+      const z = Math.random();
+      return {
+        x: Math.random()*W, y: Math.random()*H, z,
+        r: 0.6 + z*2.2,
+        vx: (Math.random()-0.5)*(0.15+z*0.3),
+        vy: -(0.08+z*0.25),
+        color: colors[Math.floor(Math.random()*colors.length)],
+        tw: Math.random()*Math.PI*2
+      };
+    });
+  }
+  function step() {
+    ctx.clearRect(0,0,W,H);
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy; p.tw += 0.03;
+      if (p.y < -10) { p.y = H+10; p.x = Math.random()*W; }
+      if (p.x < -10) p.x = W+10;
+      if (p.x > W+10) p.x = -10;
+      const flicker = 0.55 + Math.sin(p.tw)*0.45;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.min(0.85, 0.15+p.z*0.7) * flicker;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 8+p.z*10;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(step);
+  }
+  resize(); initParticles(); step();
+  window.addEventListener('resize', () => { resize(); initParticles(); });
+
+  // ---------- Hero tilt + orb parallax ----------
+  hero.addEventListener('pointermove', (e) => {
+    const r = hero.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    const rx = (py - 0.5) * -8;
+    const ry = (px - 0.5) * 8;
+    hero.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    document.getElementById('orb1').style.transform = `translate(${(px-0.5)*50}px, ${(py-0.5)*36}px)`;
+    document.getElementById('orb2').style.transform = `translate(${(px-0.5)*-40}px, ${(py-0.5)*-28}px)`;
+  });
+  hero.addEventListener('pointerleave', () => {
+    hero.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    document.getElementById('orb1').style.transform = 'translate(0,0)';
+    document.getElementById('orb2').style.transform = 'translate(0,0)';
+  });
+
+  // ---------- Tilt cards ----------
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('pointermove', (e) => {
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top) / r.height;
+      const rx = (py - 0.5) * -14;
+      const ry = (px - 0.5) * 14;
+      card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) scale(1.02) translateZ(10px)`;
+      const glare = card.querySelector('.glare');
+      if (glare) glare.style.background = `radial-gradient(circle at ${px*100}% ${py*100}%, rgba(255,255,255,.35), transparent 46%)`;
+    });
+    card.addEventListener('pointerleave', () => {
+      card.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1) translateZ(0px)';
+    });
+  });
+
+  // ---------- Magnetic buttons ----------
+  document.querySelectorAll('[data-magnet]').forEach(wrap => {
+    wrap.addEventListener('pointermove', (e) => {
+      const r = wrap.getBoundingClientRect();
+      const relX = e.clientX - (r.left + r.width/2);
+      const relY = e.clientY - (r.top + r.height/2);
+      wrap.style.transform = `translate(${relX*0.3}px, ${relY*0.3}px)`;
+    });
+    wrap.addEventListener('pointerleave', () => { wrap.style.transform = 'translate(0,0)'; });
+  });
+
+  // ---------- Scroll reveal ----------
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('in'); });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

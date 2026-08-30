@@ -1,0 +1,700 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon-blue: #00d4ff;
+  --color-neon-purple: #a855f7;
+  --color-neon-pink: #ff006e;
+  --color-neon-green: #39ff14;
+  --color-neon-orange: #ff6b00;
+  --color-neon-yellow: #ffe600;
+  --color-dark-950: #0f0f1a; /* Lightened from #050510 */
+  --color-dark-900: #16162a; /* Lightened from #0a0a1a */
+  --color-dark-800: #1d1d3d; /* Lightened from #12122b */
+  --color-dark-700: #252550;
+  --color-dark-600: #2d2d6a;
+  --color-dark-500: #35358a;
+  --color-gaming-card: #1d1d3d;
+  --color-gaming-border: #3a3a6a;
+  --font-family-gaming: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --bg-main: #0f0f1a; /* Lightened from #050510 */
+  --card-bg: rgba(29, 29, 61, 0.85);
+}
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neon-purple) var(--color-dark-800);
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--color-dark-800);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-neon-purple);
+    border-radius: 3px;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+html {
+  min-height: 100%;
+  min-height: 100dvh;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--bg-main, #050510);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --bottom-nav-space: calc(96px + var(--safe-bottom));
+}
+
+button, a, input, textarea, select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a {
+  touch-action: manipulation;
+}
+
+@media (max-width: 640px) {
+  input, textarea, select {
+    font-size: 16px !important; /* prevents mobile browser auto-zoom */
+  }
+}
+
+.mobile-safe-page {
+  min-height: 100dvh;
+  padding-bottom: var(--bottom-nav-space);
+}
+
+.pb-safe-bottom { padding-bottom: var(--safe-bottom); }
+.mb-bottom-nav { margin-bottom: var(--bottom-nav-space); }
+
+/* When background image is active - make body and all main containers transparent */
+.show-bg-image body,
+.show-bg-image,
+.show-bg-image main,
+.show-bg-image .page-container,
+.show-bg-image .page-content {
+  background-color: transparent !important;
+}
+
+/* ============================================
+   PAGE CONTAINER - RESPONSIVE
+   ============================================ */
+
+/* Mobile: max 480px centered */
+/* Desktop: full width with max constraints */
+
+.page-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    padding: 0 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    padding: 0 40px;
+  }
+}
+
+/* Mobile-first page wrapper */
+.page-content {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-content {
+    max-width: 896px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-content {
+    max-width: 1024px;
+  }
+}
+
+/* ============================================
+   GLASS & CARDS
+   ============================================ */
+
+/* No backdrop-filter here on purpose — see the note on .gaming-card below.
+   `--card-bg` is already near-opaque, so the blur cost bought almost nothing
+   while making every list page scroll at 20-30fps. */
+.glass-panel {
+  background: var(--card-bg) !important;
+}
+
+.gaming-card {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--color-gaming-border);
+  border-radius: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.gaming-card:hover {
+  border-color: var(--color-neon-purple);
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes sheen {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px var(--color-neon-blue), 0 0 10px var(--color-neon-blue); }
+  50% { box-shadow: 0 0 10px var(--color-neon-blue), 0 0 20px var(--color-neon-blue), 0 0 30px var(--color-neon-blue); }
+}
+
+.animate-neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.gaming-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-neon-purple), #7c3aed);
+  color: white;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4), 
+              inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gaming-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.gaming-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: skewX(-25deg);
+  transition: none;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gaming-btn:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.6), 
+                inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .gaming-btn:hover::after {
+    animation: sheen 0.75s forwards;
+  }
+}
+
+.gaming-btn:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.gaming-btn-danger {
+  background: linear-gradient(135deg, var(--color-neon-pink), #d9025b);
+  box-shadow: 0 4px 15px rgba(255, 0, 110, 0.4);
+}
+
+.gaming-btn-success {
+  background: linear-gradient(135deg, var(--color-neon-green), #00a344);
+  box-shadow: 0 4px 15px rgba(57, 255, 20, 0.4);
+}
+
+/* ============================================
+   INPUTS
+   ============================================ */
+
+.gaming-input {
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-gaming-border);
+  border-radius: 12px;
+  color: white;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  width: 100%;
+  outline: none;
+}
+
+.gaming-input:focus {
+  border-color: var(--color-neon-blue);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+  background: var(--color-dark-700);
+}
+
+.gaming-select {
+  background: var(--color-dark-800);
+  border: 1px solid var(--color-gaming-border);
+  border-radius: 12px;
+  color: white;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  width: 100%;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* ============================================
+   TEXT COLORS
+   ============================================ */
+
+.neon-text-blue {
+  color: var(--color-neon-blue);
+  text-shadow: 0 0 7px var(--color-neon-blue), 0 0 10px var(--color-neon-blue);
+}
+
+.neon-text-purple {
+  color: var(--color-neon-purple);
+  text-shadow: 0 0 7px var(--color-neon-purple), 0 0 10px var(--color-neon-purple);
+}
+
+.neon-text-pink {
+  color: var(--color-neon-pink);
+  text-shadow: 0 0 7px var(--color-neon-pink), 0 0 10px var(--color-neon-pink);
+}
+
+.neon-border {
+  border: 1px solid var(--color-neon-blue);
+  box-shadow: 0 0 5px var(--color-neon-blue), inset 0 0 5px rgba(0, 212, 255, 0.1);
+}
+
+/* ============================================
+   LUXURY EFFECTS
+   ============================================ */
+
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -8px, 0) rotate(2deg); }
+}
+
+@keyframes aurora-shift {
+  0% { filter: hue-rotate(0deg); transform: translateX(0); }
+  50% { filter: hue-rotate(22deg); transform: translateX(12px); }
+  100% { filter: hue-rotate(0deg); transform: translateX(0); }
+}
+
+@keyframes soft-shimmer {
+  0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+  25% { opacity: .35; }
+  100% { transform: translateX(130%) skewX(-18deg); opacity: 0; }
+}
+
+.animate-float-slow { animation: float-slow 4.8s ease-in-out infinite; }
+.animate-aurora { animation: aurora-shift 8s ease-in-out infinite; }
+
+.fx-card {
+  transform-style: preserve-3d;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .42),
+              inset 0 1px 0 rgba(255,255,255,.08),
+              inset 0 -1px 0 rgba(255,255,255,.03);
+}
+
+.fx-card::after {
+  content: "";
+  position: absolute;
+  inset: -20% -45%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+  pointer-events: none;
+  animation: soft-shimmer 5.5s ease-in-out infinite;
+}
+
+.depth-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(42px);
+  opacity: .22;
+  pointer-events: none;
+}
+
+/* ===== Home Page Styles ===== */
+.glass-panel {
+  /* 0.9 alpha already hides the backdrop; blurring it was pure scroll cost. */
+  background: rgba(18, 18, 43, 0.9);
+}
+.en-font {
+  font-family: "Arial Black", Impact, system-ui, sans-serif;
+  letter-spacing: -0.045em;
+}
+.num-en {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.hero-art {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(188, 0, 255, 0.55), transparent 18%),
+    radial-gradient(circle at 20% 12%, rgba(0, 210, 255, 0.16), transparent 22%),
+    radial-gradient(circle at 50% 108%, rgba(255, 255, 255, 0.10), transparent 34%),
+    linear-gradient(135deg, #14101d 0%, #0b0b12 45%, #1c0630 100%);
+}
+
+/* ============================================
+   GAMENT ARENA GLOBAL SKIN — inspired by COD Arena
+   ============================================ */
+:root {
+  --arena-bg: #050509;
+  --arena-panel: rgba(12, 12, 18, 0.72);
+  --arena-panel-strong: rgba(16, 15, 24, 0.88);
+  --arena-border: rgba(255, 255, 255, 0.10);
+  --arena-border-hot: rgba(249, 115, 22, 0.34);
+  --arena-orange: #ff6a00;
+  --arena-red: #ff1e1e;
+  --arena-purple: #a855f7;
+  --arena-gold: #ffd84d;
+  --bg-main: var(--arena-bg);
+  --card-bg: var(--arena-panel);
+  --color-dark-950: #050509;
+  --color-dark-900: #07070d;
+  --color-dark-800: #0d0d14;
+  --color-dark-700: #151522;
+  --color-gaming-card: #101018;
+  --color-gaming-border: rgba(255,255,255,.11);
+}
+
+html,
+body {
+  background:
+    radial-gradient(circle at 82% -8%, rgba(168, 85, 247, .34), transparent 34%),
+    radial-gradient(circle at 12% 16%, rgba(255, 106, 0, .16), transparent 28%),
+    radial-gradient(circle at 72% 44%, rgba(255, 106, 0, .10), transparent 30%),
+    linear-gradient(180deg, #050509 0%, #090912 50%, #050509 100%) !important;
+  color: #fff;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: .42;
+  background-image:
+    linear-gradient(rgba(255,255,255,.085) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.085) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at 50% 22%, black 0%, rgba(0,0,0,.85) 42%, transparent 100%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .75;
+  background:
+    radial-gradient(circle at 86% 28%, rgba(255, 106, 0, .12), transparent 23%),
+    radial-gradient(circle at 7% 80%, rgba(168, 85, 247, .20), transparent 23%),
+    linear-gradient(90deg, rgba(255,255,255,.02), transparent 35%, rgba(255,106,0,.04));
+}
+
+/* Let the global arena background show through old page wrappers. */
+.bg-dark-900,
+.bg-dark-950,
+.bg-\[\#060606\],
+.bg-\[\#070707\],
+.bg-\[\#06060f\],
+.bg-\[\#07080d\],
+.bg-\[\#070711\] {
+  background-color: transparent !important;
+}
+
+nav.sticky {
+  background: rgba(5, 5, 9, 0.82) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important;
+  backdrop-filter: blur(24px) saturate(1.25) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.25) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.35), inset 0 -1px 0 rgba(249,115,22,.10);
+}
+
+.gaming-card,
+.glass-panel,
+.fx-card {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018)),
+    radial-gradient(circle at 82% 0%, rgba(249,115,22,.10), transparent 38%),
+    rgba(8, 8, 14, .78) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-top-color: rgba(255,255,255,.18) !important;
+  border-radius: 28px !important;
+  box-shadow:
+    0 24px 80px rgba(0,0,0,.36),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(249,115,22,.045) !important;
+}
+
+/* `backdrop-filter` on a repeating card is the single most expensive thing on
+   these pages. Every card forces the compositor to re-sample and re-blur the
+   backdrop behind it on each scrolled frame, and the cost scales with how many
+   cards are on screen — which is why list pages suffered while the home page
+   was fine.
+   Measured on the live site at 1440x900, scrolling the full page:
+     /leaderboard (22 blurred layers): median 33.4ms -> 16.7ms, 5 janky frames -> 0
+     /honors      (14 blurred layers): median 50.0ms -> 33.3ms, 10 janky frames -> 0
+   The cards already paint a near-opaque background (rgba(8,8,14,.78)) plus two
+   gradients, so the blur contributes very little visually. Keep it only where
+   there are a handful of instances and the effect actually reads: chrome that
+   overlays scrolling content. */
+@media (hover: hover) and (pointer: fine) {
+  /* A single hovered card can afford the blur; a full list cannot. */
+  .gaming-card:hover,
+  .fx-card:hover {
+    backdrop-filter: blur(22px) saturate(1.12);
+    -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  }
+}
+
+/* Same problem via Tailwind utilities used directly in markup: 31 call sites,
+   8 of them on /honors alone. They are almost all small badges and chips over
+   an already near-opaque fill (bg-black/55, bg-black/45, bg-black/30), where
+   the blur is invisible but still forces a backdrop re-sample per frame.
+   Neutralise the repeating cases and keep the blur for genuine full-width
+   chrome that overlays scrolling content (sticky headers, the bottom nav),
+   which is where the glass effect is actually legible. */
+.backdrop-blur-sm:not(header):not(.sticky):not(.fixed),
+.backdrop-blur-md:not(header):not(.sticky):not(.fixed),
+.backdrop-blur-xl:not(header):not(.sticky):not(.fixed),
+.backdrop-blur-2xl:not(header):not(.sticky):not(.fixed) {
+  /* Clear Tailwind's own custom property rather than the shorthand: the
+     utility composes `backdrop-filter` from `--tw-backdrop-blur`, and
+     overriding the shorthand alone gets dropped by the minifier. */
+  --tw-backdrop-blur: ;
+}
+
+.gaming-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.10), transparent 18%, transparent 78%, rgba(249,115,22,.08)),
+    radial-gradient(circle at 15% 0%, rgba(168,85,247,.12), transparent 28%);
+  opacity: .85;
+}
+
+.gaming-card:hover {
+  border-color: rgba(249, 115, 22, .42) !important;
+  box-shadow:
+    0 30px 95px rgba(0,0,0,.46),
+    0 0 34px rgba(249,115,22,.13),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.gaming-btn {
+  background: linear-gradient(135deg, #ff2020 0%, #ff6a00 48%, #ff9f1c 100%) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-top-color: rgba(255,255,255,.34) !important;
+  box-shadow:
+    0 14px 34px rgba(255, 80, 0, .30),
+    inset 0 1px 1px rgba(255,255,255,.26) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.gaming-btn:hover {
+  box-shadow:
+    0 18px 48px rgba(255, 80, 0, .42),
+    0 0 24px rgba(168,85,247,.16),
+    inset 0 1px 1px rgba(255,255,255,.32) !important;
+}
+
+.gaming-input,
+.gaming-select,
+input.gaming-input,
+textarea.gaming-input,
+select.gaming-input {
+  background: rgba(0,0,0,.36) !important;
+  border: 1px solid rgba(255,255,255,.11) !important;
+  border-radius: 18px !important;
+  color: #fff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.gaming-input:focus,
+.gaming-select:focus {
+  border-color: rgba(249,115,22,.58) !important;
+  background: rgba(0,0,0,.48) !important;
+  box-shadow: 0 0 0 4px rgba(249,115,22,.10), inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+
+.neon-text-purple {
+  color: #c084fc;
+  text-shadow: 0 0 12px rgba(168,85,247,.55), 0 0 22px rgba(255,106,0,.18);
+}
+
+.glass-bottom {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
+    rgba(9, 9, 16, 0.92) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 -18px 55px rgba(0,0,0,.72), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+/* ============================================
+   BOTTOM NAV — layout safety
+   ============================================
+
+   The bar is `position: fixed` and capped at max-width 520px so it looks like
+   a phone dock. On a phone the viewport is narrower than that cap, so the bar
+   spans the full width and sits flush against the bottom edge — correct.
+
+   On desktop the same cap left it centred with ~700px of empty space on each
+   side, floating in the middle of the layout. Worse, nothing reserved space
+   for it, so it painted straight over real content (the game cards on the
+   home page, player rows on the leaderboard, news cards in the hall of fame).
+
+   Two fixes, both desktop-only so the mobile/PWA layout is untouched:
+     1. widen the bar and pin it to the bottom edge,
+     2. reserve its height at the end of the page so the last row of content
+        can always be scrolled clear of it.
+*/
+
+/* `--bottom-nav-space` (96px + safe area) is defined in :root near the top of
+   this file, alongside `.mobile-safe-page` / `.mb-bottom-nav`. That machinery
+   already existed but no page ever opted in, so nothing actually reserved the
+   space. Apply it automatically instead of asking ~30 pages to remember. */
+
+body:has(.site-bottom-nav) {
+  /* The bar measures ~88px, and the raised centre (Arena) button overflows
+     above it, so reserve a little more than --bottom-nav-space rather than
+     exactly matching it. */
+  padding-bottom: calc(var(--bottom-nav-space) + 24px);
+}
+
+/* Belt and braces for engines without :has(): the bar contributes its own
+   spacer at the end of the document flow. */
+@supports not selector(:has(*)) {
+  .site-bottom-nav::after {
+    content: "";
+    display: block;
+    height: var(--bottom-nav-space);
+  }
+}
+
+@media (min-width: 640px) {
+  /* Desktop/tablet: stop pretending to be a phone dock. The 520px cap left the
+     bar marooned in the middle of a 1920px viewport; span a comfortable width
+     instead while staying anchored to the bottom edge. */
+  .site-bottom-nav {
+    max-width: min(760px, calc(100% - 48px));
+  }
+}
+
+/* Upgrade common utility-looking panels without touching Tailwind internals. */
+[class*="rounded-[2rem]"],
+[class*="rounded-[2.5rem]"],
+[class*="rounded-3xl"] {
+  --tw-shadow-color: rgba(0,0,0,.38);
+}
+
+@media (max-width: 640px) {
+  .gaming-card { border-radius: 24px !important; }
+  .gaming-btn { border-radius: 16px !important; }
+}
+
+/* Rotating halo behind the trust-badge plinths. */
+@keyframes trust-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[trust-spin_9s_linear_infinite\] { animation: none; }
+}

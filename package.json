@@ -1,0 +1,78 @@
+{
+  "name": "flexa-global",
+  "version": "1.0.0",
+  "description": "Flexa Global - Next-Gen Esports & Tournament Platform",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:production": "node scripts/production-smoke.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "echo '' && echo '  REFUSED: this project does not use drizzle migration history.' && echo '  drizzle/manual/*.sql are idempotent and applied with:' && echo '' && echo '      DATABASE_URL=... ./scripts/apply-migrations.sh' && echo '' && echo '  See drizzle/manual/README.md. Use db:migrate:unsafe only on a fresh, empty database.' && echo '' && exit 1",
+    "db:migrate:unsafe": "drizzle-kit migrate",
+    "db:push": "echo '' && echo '  REFUSED: this project does not use drizzle migration history.' && echo '  drizzle/manual/*.sql are idempotent and applied with:' && echo '' && echo '      DATABASE_URL=... ./scripts/apply-migrations.sh' && echo '' && echo '  See drizzle/manual/README.md. Use db:migrate:unsafe only on a fresh, empty database.' && echo '' && exit 1",
+    "db:push:unsafe": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:apply": "./scripts/apply-migrations.sh"
+  },
+  "dependencies": {
+    "@grammyjs/auto-retry": "^2.0.2",
+    "@grammyjs/transformer-throttler": "^1.2.1",
+    "@tailwindcss/postcss": "4.1.17",
+    "@tanstack/react-query": "^5.101.0",
+    "@tma.js/init-data-node": "^2.0.8",
+    "argon2": "^0.44.0",
+    "drizzle-orm": "0.45.2",
+    "framer-motion": "^12.42.2",
+    "grammy": "^1.44.0",
+    "jimp": "^1.6.1",
+    "jsqr": "^1.4.0",
+    "mailchecker": "^6.0.20",
+    "next": "^16.2.11",
+    "nodemailer": "^9.0.3",
+    "persian-swear-words": "^3.0.0",
+    "pg": "8.20.0",
+    "pino": "^10.3.1",
+    "postcss": "^8.5.23",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "resend": "^6.16.0",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3",
+    "uuid": "^14.0.0",
+    "zod": "^4.4.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.12"
+    },
+    "sharp": "^0.35.3",
+    "nanoid": "^3.3.18"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/argon2": "^0.14.1",
+    "@types/node": "22.19.15",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pg": "8.18.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/uuid": "^10.0.0",
+    "dotenv": "17.3.1",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.4",
+    "eslint-config-next": "^16.2.11",
+    "pino-pretty": "^13.1.3",
+    "vitest": "^4.1.9"
+  }
+}

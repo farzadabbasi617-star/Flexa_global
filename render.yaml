@@ -1,0 +1,140 @@
+services:
+  - type: web
+    name: gament
+    env: node
+    plan: free
+    # Schema changes are applied as reviewed migrations, never implicitly during every build.
+    buildCommand: npm ci --include=dev && NODE_OPTIONS="--max-old-space-size=900 --max-semi-space-size=8" npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ADMIN_SETUP_SECRET
+        sync: false
+      - key: OTP_TOKEN_PEPPER
+        sync: false
+      - key: CLASH_ROYALE_API_TOKEN
+        sync: false
+      - key: CLASH_ROYALE_API_BASE_URL
+        value: https://proxy.royaleapi.dev/v1
+      # Email delivery.
+      # NOTE: when EMAIL_PROVIDER is set explicitly, email-service.ts does NOT fall back
+      # to another provider if that one is misconfigured -- it resolves to "none" and every
+      # OTP / verification / password-reset mail is silently dropped. Keep this value in
+      # sync with the credentials that are actually populated in the Render dashboard.
+      - key: EMAIL_PROVIDER
+        value: smtp
+      # Active provider: Gmail SMTP. Set SMTP_PASS to a Gmail App Password (not the
+      # account password) in the dashboard. Gmail free tier allows ~500 mails/day.
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: '465'
+      - key: SMTP_SECURE
+        value: 'true'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      # Standby provider. To switch: verify the sending domain in Resend, set
+      # RESEND_FROM_EMAIL to an address on it, then flip EMAIL_PROVIDER to "resend".
+      # An unverified Resend account can only send from onboarding@resend.dev to the
+      # account owner's own address, which is not usable in production.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      # Legacy provider, currently unused. Both values must be present for
+      # EMAIL_PROVIDER=google_apps_script to work.
+      - key: GOOGLE_APPS_SCRIPT_EMAIL_URL
+        sync: false
+      - key: GOOGLE_APPS_SCRIPT_EMAIL_SECRET
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: TELEGRAM_ADMIN_IDS
+        sync: false
+      # کانال واقعی @Flexa_games است (عنوانش «Gament» است — گمراه‌کننده).
+      # @Gament_games وجود خارجی ندارد؛ getChat می‌گوید chat not found.
+      - key: TELEGRAM_CHANNEL_URL
+        value: https://t.me/Flexa_games
+      - key: TELEGRAM_CHANNEL_ID
+        value: '@Flexa_games'
+      - key: TELEGRAM_BOT_USERNAME
+        value: FlexaTournamentBot
+      - key: TELEGRAM_CRON_SECRET
+        sync: false
+      - key: TELEGRAM_SETUP_SECRET
+        sync: false
+      - key: TELEGRAM_REQUIRE_CHANNEL_MEMBERSHIP
+        value: 'true'
+      - key: TELEGRAM_INTEGRATION_SECRET
+        sync: false
+      - key: GAMING_NEWS_TELEGRAM_CHANNELS
+        sync: false
+      - key: GAMING_NEWS_MAX_PER_RUN
+        value: '4'
+      - key: AFFILIATE_PROGRAM_LIVE
+        value: 'true'
+      - key: AFFILIATE_LEGAL_APPROVED
+        value: 'true'
+      - key: AFFILIATE_FINANCE_APPROVED
+        value: 'true'
+      - key: AFFILIATE_LIVE_ROLLOUT
+        value: public
+      - key: AFFILIATE_CANARY_GAMENT_IDS
+        sync: false
+      - key: COD_ARENA_LIVE
+        value: 'false'
+      - key: COD_ARENA_FINANCE_APPROVED
+        value: 'false'
+      - key: AFFILIATE_ATTRIBUTION_DAYS
+        value: '30'
+      - key: AFFILIATE_COMMISSION_TOMAN
+        value: '7000'
+      - key: AFFILIATE_HOLD_HOURS
+        value: '72'
+      - key: AFFILIATE_MINIMUM_PAYOUT_TOMAN
+        value: '300000'
+      - key: PERSONAL_REFERRAL_MINIMUM_PAYOUT_TOMAN
+        value: '200000'
+      - key: FARAZSMS_API_KEY
+        sync: false
+      - key: FARAZSMS_PATTERN_CODE
+        sync: false
+      - key: FARAZSMS_SENDER
+        sync: false
+      # ZarinPal payment gateway.
+      # ZARINPAL_MERCHANT_ID is the 36-character UUID from the panel, not the
+      # ZP.xxxxxxx code shown on a ZarinLink page -- that is a personal payment
+      # page and cannot credit a wallet automatically.
+      # ZARINPAL_LIVE is a separate switch on purpose: a valid merchant id alone
+      # never starts charging cards, matching COD_ARENA_LIVE and
+      # AFFILIATE_PROGRAM_LIVE. Set it to 'true' only after a real end-to-end test.
+      - key: ZARINPAL_MERCHANT_ID
+        sync: false
+      # Deliberately sync:false rather than a literal. This file previously
+      # pinned 'false' while the dashboard had been switched to 'true' to take
+      # real payments, so every blueprint sync could silently disable the
+      # gateway -- deposits would start returning "درگاه غیرفعال" with nothing
+      # in the diff to explain why. The live switch belongs to the dashboard.
+      - key: ZARINPAL_LIVE
+        sync: false
+      - key: ZARINPAL_SANDBOX
+        value: 'false'
+      # Must be the public https origin. The callback URL is built from it, and
+      # ZarinPal will not return the user to a mismatched or non-https host.
+      - key: PAYMENT_CALLBACK_BASE_URL
+        value: https://www.gament1.ir

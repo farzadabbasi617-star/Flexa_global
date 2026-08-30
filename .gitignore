@@ -1,0 +1,29 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+dist/
+build/
+.DS_Store
+*.log
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Test artifacts
+coverage/
+.vitest/
+playwright-report/
+test-results/
+blob-report/
+
+# Local/user uploads and accidental screenshots
+uploads/
+*.local.jpg
+*.local.png
+.env
+__pycache__/

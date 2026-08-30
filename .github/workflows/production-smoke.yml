@@ -1,0 +1,33 @@
+name: Production launch smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Non-destructive production checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Wait for the deployed release and run launch checks
+        run: node scripts/production-smoke.mjs
+        env:
+          PRODUCTION_BASE_URL: https://www.gament1.ir
+          EXPECTED_RELEASE: ${{ github.event_name == 'push' && github.sha || '' }}
+          PRODUCTION_SMOKE_ATTEMPTS: ${{ github.event_name == 'push' && '20' || '2' }}
+          PRODUCTION_SMOKE_DELAY_MS: "30000"
+          # /api/health hides integration detail from unauthenticated callers.
+          HEALTH_SECRET: ${{ secrets.TELEGRAM_CRON_SECRET }}

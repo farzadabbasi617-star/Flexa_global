@@ -1,0 +1,64 @@
+{
+  "name": "گیمنت | Gament — پلتفرم تورنومنت گیمینگ",
+  "short_name": "Gament",
+  "description": "گیمنت (Gament) پلتفرم حرفه‌ای برگزاری و مدیریت تورنومنت‌های بازی با داوری هوشمند هوش مصنوعی است.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#a855f7",
+  "orientation": "portrait-primary",
+  "categories": ["games", "entertainment"],
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icons/gament-icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gament-icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gament-icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gament-icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gament-icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gament-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/gament-icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gament-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+name: Trusted gaming news cron
+
+on:
+  schedule:
+    # News discovery is intentionally separate from the busy Telegram cron.
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-gaming-news-cron
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Discover and publish trusted gaming news
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Call source-only news automation
+        env:
+          CRON_SECRET: ${{ secrets.TELEGRAM_CRON_SECRET }}
+          TELEGRAM_CRON_URL: ${{ secrets.TELEGRAM_CRON_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET" || { echo "TELEGRAM_CRON_SECRET repository secret is missing"; exit 1; }
+          test -n "$TELEGRAM_CRON_URL" || { echo "TELEGRAM_CRON_URL repository secret is missing"; exit 1; }
+          case "$TELEGRAM_CRON_URL" in https://*.onrender.com/api/telegram/cron) ;; *) echo "TELEGRAM_CRON_URL must be the Render origin cron URL"; exit 1;; esac
+          NEWS_URL="${TELEGRAM_CRON_URL%/api/telegram/cron}/api/honors/auto-news"
+          status="$(curl --silent --show-error \
+            --retry 2 --retry-all-errors --max-time 240 \
+            -o /tmp/gament-news-response.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Accept: application/json" \
+            -H "User-Agent: Gament-Trusted-News-Cron/2.0" \
+            "$NEWS_URL")"
+          if [ "$status" != "200" ]; then
+            echo "Gament news cron returned HTTP $status"
+            head -c 2000 /tmp/gament-news-response.json
+            exit 1
+          fi
+          jq -e '.ok == true' /tmp/gament-news-response.json >/dev/null
+          echo "Trusted gaming news result:"
+          jq '.' /tmp/gament-news-response.json

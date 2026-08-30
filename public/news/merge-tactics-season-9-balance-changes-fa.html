@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تغییرات بالانس فصل ۹ - تاکتیک‌های ادغام (Merge Tactics) کلش رویال</title>
+    <meta name="description" content="تغییرات بالانس فصل ۹ کلش رویال - بررسی کامل همه nerf و buffهای سربازها و حاکمان در آپدیت Merge Tactics سیزن ۹">
+    <meta name="keywords" content="کلش رویال, تغییرات بالانس, فصل ۹, سیزن ۹, مینی پکا, جادوگر, کلش رویال فارسی, Merge Tactics">
+    <link rel="canonical" href="https://supercell.com/en/games/clashroyale/blog/release-notes/merge-tactics-season-9-balance-changes/">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+            background: linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 50%, #0d0d35 100%);
+            color: #e0e0e0;
+            line-height: 1.9;
+            direction: rtl;
+        }
+
+        /* Header */
+        .hero {
+            background: linear-gradient(180deg, #0f0f3d 0%, #1a1a5e 40%, #2a1a0e 100%);
+            padding: 60px 20px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 3px solid #f7d44a;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(247,212,74,0.03)" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,208C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: #f7d44a;
+            color: #0a0a2e;
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-size: 2.5em;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 20px rgba(247,212,74,0.3);
+            position: relative;
+        }
+
+        .hero h1 span {
+            color: #f7d44a;
+        }
+
+        .hero .date {
+            color: #aab;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .hero .date i {
+            font-style: normal;
+            background: rgba(247,212,74,0.15);
+            padding: 4px 12px;
+            border-radius: 6px;
+            color: #f7d44a;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: -40px auto 0;
+            padding: 0 20px 60px;
+            position: relative;
+        }
+
+        /* Banner Image */
+        .banner-wrap {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+            border: 2px solid rgba(247,212,74,0.2);
+        }
+
+        .banner-wrap img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(247,212,74,0.2);
+            border-radius: 16px;
+            padding: 30px 35px;
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        .toc h2 {
+            color: #f7d44a;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .toc ul li {
+            margin-bottom: 10px;
+        }
+
+        .toc ul li a {
+            color: #c8c8e8;
+            text-decoration: none;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .toc ul li a:hover {
+            background: rgba(247,212,74,0.1);
+            color: #f7d44a;
+            padding-right: 20px;
+        }
+
+        .toc ul li a .toc-num {
+            display: inline-flex;
+            width: 28px;
+            height: 28px;
+            background: rgba(247,212,74,0.15);
+            color: #f7d44a;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Sections */
+        .section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 35px;
+            margin-bottom: 35px;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+        }
+
+        .section:hover {
+            border-color: rgba(247,212,74,0.15);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .section-header .icon {
+            font-size: 32px;
+        }
+
+        .section-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .section-header .date-tag {
+            margin-right: auto;
+            background: rgba(247,212,74,0.15);
+            color: #f7d44a;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(0,0,0,0.25);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s;
+        }
+
+        .card:last-child {
+            margin-bottom: 0;
+        }
+
+        .card:hover {
+            border-color: rgba(247,212,74,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 18px;
+        }
+
+        .card-header img {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            padding: 4px;
+            object-fit: contain;
+        }
+
+        .card-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #f7d44a;
+        }
+
+        .card-header .change-type {
+            margin-right: auto;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .change-type.buff {
+            background: rgba(76, 217, 100, 0.2);
+            color: #4cd964;
+        }
+
+        .change-type.nerf {
+            background: rgba(255, 69, 58, 0.2);
+            color: #ff453a;
+        }
+
+        .change-type.rework {
+            background: rgba(90, 200, 250, 0.2);
+            color: #5ac8fa;
+        }
+
+        .card p {
+            color: #c0c0d8;
+            margin-bottom: 15px;
+            font-size: 15px;
+        }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 15px 0;
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+
+        table th {
+            background: rgba(247,212,74,0.12);
+            color: #f7d44a;
+            padding: 12px 16px;
+            text-align: right;
+            font-weight: 700;
+            border-bottom: 2px solid rgba(247,212,74,0.2);
+        }
+
+        table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #d0d0e8;
+        }
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        table tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .change-up {
+            color: #4cd964;
+            font-weight: 700;
+        }
+
+        .change-down {
+            color: #ff453a;
+            font-weight: 700;
+        }
+
+        .change-major {
+            color: #5ac8fa;
+            font-weight: 700;
+        }
+
+        /* Description */
+        .desc {
+            background: rgba(247,212,74,0.05);
+            border-right: 3px solid #f7d44a;
+            padding: 14px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #b0b0c8;
+        }
+
+        .desc strong {
+            color: #e0e0f0;
+        }
+
+        /* Summary Table */
+        .summary-section {
+            background: linear-gradient(135deg, rgba(247,212,74,0.08), rgba(247,212,74,0.02));
+            border: 1px solid rgba(247,212,74,0.2);
+        }
+
+        /* FAQ */
+        .faq-item {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .faq-item h4 {
+            color: #f7d44a;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .faq-item p {
+            color: #b0b0c8;
+            font-size: 15px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            margin-top: 40px;
+        }
+
+        .footer p {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #f7d44a;
+            text-decoration: none;
+        }
+
+        .footer .signature {
+            color: #aab;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        /* Divider */
+        .big-divider {
+            text-align: center;
+            margin: 30px 0;
+            font-size: 24px;
+            color: rgba(247,212,74,0.3);
+            letter-spacing: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 1.6em;
+            }
+
+            .container {
+                padding: 0 12px 40px;
+                margin-top: -30px;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .card-header {
+                flex-wrap: wrap;
+            }
+
+            .card-header .change-type {
+                margin-right: 0;
+                width: 100%;
+                text-align: center;
+            }
+
+            table {
+                font-size: 13px;
+            }
+
+            table th, table td {
+                padding: 8px 10px;
+            }
+
+            .toc {
+                padding: 20px;
+            }
+        }
+
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Quick Summary Box */
+        .quick-summary {
+            background: linear-gradient(135deg, rgba(247,212,74,0.1), rgba(247,212,74,0.03));
+            border: 1px solid rgba(247,212,74,0.25);
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin-bottom: 35px;
+        }
+
+        .quick-summary h3 {
+            color: #f7d44a;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .quick-summary p {
+            color: #c0c0d8;
+            font-size: 15px;
+        }
+
+        .quick-summary ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 12px;
+        }
+
+        .quick-summary ul li {
+            padding: 6px 0;
+            color: #b0b0c8;
+            font-size: 14px;
+        }
+
+        .quick-summary ul li::before {
+            content: '▸ ';
+            color: #f7d44a;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== HERO ==================== -->
+<header class="hero">
+    <div class="hero-badge">📢 آپدیت رسمی کلش رویال</div>
+    <h1>تغییرات <span>بالانس</span> فصل ۹</h1>
+    <h1>تاکتیک‌های ادغام <span>(Merge Tactics)</span></h1>
+    <p class="date">📅 تاریخ انتشار: ۱ ژوئن ۲۰۲۶ | <i>سیزن ۹</i></p>
+</header>
+
+<!-- ==================== CONTAINER ==================== -->
+<div class="container">
+
+    <!-- Banner -->
+    <div class="banner-wrap">
+        <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/6RiSIAymrumYiP7YvqvrPN/f15b9acaca486955a753d634ca2fb3d5/March_Balance_changes.jpg" alt="تغییرات بالانس فصل ۹ کلش رویال">
+    </div>
+
+    <!-- Quick Summary -->
+    <div class="quick-summary">
+        <h3>🔰 خلاصه سریع</h3>
+        <p>این مقاله شامل دو دسته تغییرات است:</p>
+        <ul>
+            <li><strong>تغییرات ۱ ژوئن:</strong> مینی‌پکا، ویژگی Boss، مأموریت‌های حاکمان</li>
+            <li><strong>تغییرات ۲۶ می:</strong> حاکمان (دوشس خنجری، حکیم پژواک، ملکه گابلین، نگهبان بزرگ، شاه رویال) و سربازها (اژدهای بچه، غول، جادوگر و ...)</li>
+        </ul>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc">
+        <h2>📋 فهرست مطالب</h2>
+        <ul>
+            <li><a href="#june1-troops"><span class="toc-num">۱</span> تغییرات سربازها - ۱ ژوئن</a></li>
+            <li><a href="#june1-trait"><span class="toc-num">۲</span> تغییرات ویژگی - ۱ ژوئن</a></li>
+            <li><a href="#june1-quests"><span class="toc-num">۳</span> تغییرات مأموریت‌های حاکمان - ۱ ژوئن</a></li>
+            <li><a href="#may26-rulers"><span class="toc-num">۴</span> تغییرات حاکمان - ۲۶ می</a></li>
+            <li><a href="#may26-troops"><span class="toc-num">۵</span> تغییرات سربازها - ۲۶ می</a></li>
+            <li><a href="#summary"><span class="toc-num">۶</span> جمع‌بندی</a></li>
+        </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 1: JUNE 1 - TROOPS -->
+    <!-- ============================================================ -->
+    <div class="section" id="june1-troops">
+        <div class="section-header">
+            <span class="icon">🛡️</span>
+            <h2>تغییرات سربازها</h2>
+            <span class="date-tag">📅 ۱ ژوئن ۲۰۲۶</span>
+        </div>
+
+        <!-- Mini P.E.K.K.A -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/21yWx4Kx7KObtme0lLjQGS/742ab87c62e5ac5f4694eb57b0f9d058/minipekka_mt.png" alt="مینی پکا">
+                <h3>🎖️ مینی‌پکا (Mini P.E.K.K.A)</h3>
+                <span class="change-type nerf">🔻 ضعیف‌تر</span>
+            </div>
+            <p>یکی از مهم‌ترین تغییرات این فصل مربوط به مینی‌پکا است. کاراکتر محبوبی که با اچ‌پی بالا و توانایی قدرتمندش میدان نبرد را در اختیار گرفته بود، حالا ضعیف‌تر شده است.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۷۰۰</td>
+                            <td>۴۰۰</td>
+                            <td class="change-down">۴۳٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="desc">
+                <strong>🔍 تحلیل:</strong> با کاهش ۴۳ درصدی اچ‌پی، مینی‌پکا حالا آسیب‌پذیرتر شده و حریفان راحت‌تر می‌توانند او را از زمین خارج کنند. اچ‌پی بالای مینی‌پکا به همراه توانایی قدرتمندش باعث شده بود در میدان نبرد سلطه داشته باشد.
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 2: JUNE 1 - TRAIT -->
+    <!-- ============================================================ -->
+    <div class="section" id="june1-trait">
+        <div class="section-header">
+            <span class="icon">🧬</span>
+            <h2>تغییرات ویژگی</h2>
+            <span class="date-tag">📅 ۱ ژوئن ۲۰۲۶</span>
+        </div>
+
+        <!-- Boss Trait -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/6VKbPheFoaES550GzgEqDE/360225a84426c6fe93788065827908df/boss_trait.png" alt="ویژگی رئیس">
+                <h3>🎖️ ویژگی رئیس (Boss Trait)</h3>
+                <span class="change-type nerf">🔻 ضعیف‌تر</span>
+            </div>
+            <p>ویژگی «باس» که در سطوح بالای ادغام در دسترس قرار می‌گرفت، قدرت فوق‌العاده‌ای داشت و سربازهای باس را عملاً شکست‌ناپذیر کرده بود.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💥 خسارت اضافی</td>
+                            <td>۵۰٪ / ۱۰۰٪ / ۲۰۰٪ / ۴۰۰٪</td>
+                            <td>۲۵٪ / ۵۰٪ / ۱۰۰٪ / ۲۰۰٪</td>
+                            <td class="change-down">۵۰٪ کاهش 📉</td>
+                        </tr>
+                        <tr>
+                            <td>❤️ اچ‌پی اضافی</td>
+                            <td>۵۰٪ / ۱۰۰٪ / ۲۰۰٪ / ۴۰۰٪</td>
+                            <td>۲۵٪ / ۵۰٪ / ۱۰۰٪ / ۲۰۰٪</td>
+                            <td class="change-down">۵۰٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="desc">
+                <strong>🔍 تحلیل:</strong> سربازهای رئیس (Boss) از قبل در سطوح بالاتر ادغام در دسترس بودند و این ویژگی آنها را عملاً شکست‌ناپذیر کرده بود. این کاهش ۵۰ درصدی تعادل را به بازی بازمی‌گرداند.
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 3: JUNE 1 - QUESTS -->
+    <!-- ============================================================ -->
+    <div class="section" id="june1-quests">
+        <div class="section-header">
+            <span class="icon">👑</span>
+            <h2>تغییرات مأموریت‌های حاکمان</h2>
+            <span class="date-tag">📅 ۱ ژوئن ۲۰۲۶</span>
+        </div>
+
+        <!-- Battle Machine -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/3YDHiPhkYOlGmR29YQmaEn/84862fbf32abd0dbf6c5bf1632619cef/battlemachine_mt.png" alt="ماشین جنگی">
+                <h3>🎖️ ماشین جنگی (Battle Machine)</h3>
+                <span class="change-type rework">🔁 آسان‌تر</span>
+            </div>
+            <p>انجام مأموریت‌های اولیه برای ماشین جنگی با ساختمان‌های تصادفی بسیار دشوار بود، بنابراین تیم توسعه اهداف را کاهش داد.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🎯 اهداف مأموریت</td>
+                            <td>۲ / ۸ / ۲۰</td>
+                            <td>۱ / ۵ / ۱۵</td>
+                            <td class="change-down">۵۰٪ / ۳۷.۵٪ / ۲۵٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Grand Warden -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/2hNTV6D0cs3hSo7OzopTfV/012837635cac7073dbfedab64f623755/grandwarden_mt.png" alt="نگهبان بزرگ">
+                <h3>🎖️ نگهبان بزرگ (Grand Warden)</h3>
+                <span class="change-type rework">🔁 آسان‌تر</span>
+            </div>
+            <p>نگهبان بزرگ برای شروع ساختن ارتش خود نیاز به پاداش‌های بیشتری در مراحل ابتدایی داشت.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🎯 اهداف مأموریت</td>
+                            <td>۳ / ۱۰ / ۲۵</td>
+                            <td>۲ / ۸ / ۲۰</td>
+                            <td class="change-down">۵۰٪ / ۲۰٪ / ۲۰٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Royale King -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/1ruoV7s1NTUbWFU8I7xh7L/6407845ff3b0cdcc65c8b2031c8d49bc/royaleking_mt.png" alt="شاه رویال">
+                <h3>🎖️ شاه رویال (Royale King)</h3>
+                <span class="change-type rework">🔁 آسان‌تر</span>
+            </div>
+            <p>پس از اینکه اچ‌پی شاه رویال در به‌روزرسانی قبلی کاهش یافت، حالا مأموریت‌های او نیز آسان‌تر شده‌اند تا باخت‌های اولیه پاداش بهتری داشته باشند.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🎯 اهداف مأموریت</td>
+                            <td>۲ / ۳ / ۴</td>
+                            <td>۱ / ۲ / ۴</td>
+                            <td class="change-down">۵۰٪ / ۳۳٪ / ۰٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tomb Queen -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/2NnzQfOvSVWDaJ4anmeEHJ/6a8d917e76bd2cfba0726f93253e8b1c/tombqueen_mt.png" alt="ملکه مقبره">
+                <h3>🎖️ ملکه مقبره (Tomb Queen)</h3>
+                <span class="change-type rework">🔁 آسان‌تر</span>
+            </div>
+            <p>با این تغییر، ملکه مقبره می‌تواند اولین مأموریت خود را در دو دور اول به پایان برساند.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🎯 اهداف مأموریت</td>
+                            <td>۱۰ / ۲۵ / ۸۰</td>
+                            <td>۳ / ۲۰ / ۶۰</td>
+                            <td class="change-down">۷۰٪ / ۲۰٪ / ۲۵٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Big Divider -->
+    <div class="big-divider">✦ ✦ ✦</div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 4: MAY 26 - RULERS -->
+    <!-- ============================================================ -->
+    <div class="section" id="may26-rulers">
+        <div class="section-header">
+            <span class="icon">👑</span>
+            <h2>تغییرات حاکمان</h2>
+            <span class="date-tag">📅 ۲۶ می ۲۰۲۶</span>
+        </div>
+
+        <!-- Dagger Duchess -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/6ro6JRXVSGQIY5jac8Bcl6/e5b4214785c1c6c663f8292621f7720e/daggerduchess_mt.png" alt="دوشس خنجری">
+                <h3>🎖️ دوشس خنجری (Dagger Duchess)</h3>
+                <span class="change-type buff">🔺 تقویت</span>
+            </div>
+            <p>خنجرهای دوشس به اندازه کافی تیز نبودند! تیم توسعه تصمیم گرفت با افزایش خسارت اضافی، فرصت بیشتری برای درخشش او و انجام مأموریت‌هایش فراهم کند.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💥 خسارت اضافی</td>
+                            <td>۰٪</td>
+                            <td>۲۰٪</td>
+                            <td class="change-up">۲۰٪ افزایش 📈</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Echo Sage -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/2s0cUIFjtdBbpR94e6gF3C/30225b3a4310c2a7e9a314fd7df8e741/echosage_mt.png" alt="حکیم پژواک">
+                <h3>🎖️ حکیم پژواک (Echo Sage)</h3>
+                <span class="change-type nerf">🔻 ضعیف‌تر</span>
+            </div>
+            <p>پژواک بابت مقاومت بالا محبوبیت داشت، اما این مقاومت برای حریف زیادی بود. تیم توسعه رشد اچ‌پی به‌ازای هر سطح ستاره را کاهش داد.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>📈 رشد اچ‌پی به‌ازای هر سطح ستاره</td>
+                            <td>۱.۴</td>
+                            <td>۱.۲</td>
+                            <td class="change-down">۱۴.۲٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Goblin Queen -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/6KGPG5OMtG8FXQ5iNoEYtJ/137d8ec82d5c0782dcc455957803a329/goblinqueen_mt.png" alt="ملکه گابلین">
+                <h3>🎖️ ملکه گابلین (Goblin Queen)</h3>
+                <span class="change-type buff">🔺 تقویت</span>
+            </div>
+            <p>ارتش ملکه گابلین زمان می‌برد تا ساخته شود و اگرچه در قدرت کامل می‌تواند نیروی مهیبی باشد، اما باخت در دورهای اول بیش از سود ضرر دارد. افزایش اچ‌پی به او فرصت بیشتری برای تقویت ارتش می‌دهد.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۱۰</td>
+                            <td>۱۲</td>
+                            <td class="change-up">۲۰٪ افزایش 📈</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Grand Warden -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/2hNTV6D0cs3hSo7OzopTfV/012837635cac7073dbfedab64f623755/grandwarden_mt.png" alt="نگهبان بزرگ">
+                <h3>🎖️ نگهبان بزرگ (Grand Warden)</h3>
+                <span class="change-type buff">🔺 تقویت اساسی</span>
+            </div>
+            <p>نگهبان بزرگ همیشه برای درخشش در دورهای طولانی طراحی شده بود. حالا سپرهای او (به جز Star Shield) به صورت نامحدود فعال می‌مانند.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🛡️ مدت زمان سپر</td>
+                            <td>۸ ثانیه</td>
+                            <td><strong>نامحدود</strong></td>
+                            <td class="change-major">تغییر اساسی 📈</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="desc">
+                <strong>🔍 تحلیل:</strong> این یکی از بزرگ‌ترین تغییرات این آپدیت است. سپر نامحدود نگهبان بزرگ (به جز Star Shield) می‌تواند استراتژی بازی را کاملاً دگرگون کند.
+            </div>
+        </div>
+
+        <!-- Royale King -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/1ruoV7s1NTUbWFU8I7xh7L/6407845ff3b0cdcc65c8b2031c8d49bc/royaleking_mt.png" alt="شاه رویال">
+                <h3>🎖️ شاه رویال (Royale King)</h3>
+                <span class="change-type nerf">🔻 ضعیف‌تر</span>
+            </div>
+            <p>شاه رویال با داشتن اچ‌پی اضافی و دریافت الگزیر بیشتر، با باخت در دورها میدان را تصاحب کرده بود. کاهش اچ‌پی او را وادار می‌کند زودتر دست به کار شود.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۱۲</td>
+                            <td>۱۰</td>
+                            <td class="change-down">۱۶.۷٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 5: MAY 26 - TROOPS -->
+    <!-- ============================================================ -->
+    <div class="section" id="may26-troops">
+        <div class="section-header">
+            <span class="icon">🛡️</span>
+            <h2>تغییرات سربازها</h2>
+            <span class="date-tag">📅 ۲۶ می ۲۰۲۶</span>
+        </div>
+
+        <!-- Baby Dragon -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/3jr1kVtlmBH8Yx8EuVBKA8/5acaa0cb0fd4019edfcb567369a13994/babydragon_mt.png" alt="اژدهای بچه">
+                <h3>🎖️ اژدهای بچه (Baby Dragon)</h3>
+                <span class="change-type buff">🔺 تقویت</span>
+            </div>
+            <p>اژدهای بچه با وجود ظاهر بامزه، به اندازه کافی نمی‌درخشید. تیم توسعه آمار او را بهبود بخشید.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۷۶۰</td>
+                            <td>۸۰۰</td>
+                            <td class="change-up">۵.۲٪ افزایش 📈</td>
+                        </tr>
+                        <tr>
+                            <td>⚡ سرعت حمله</td>
+                            <td>۲ ثانیه</td>
+                            <td>۱.۶۷ ثانیه</td>
+                            <td class="change-up">۱۶.۵٪ بهبود 📈</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Giant -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/j7CXvTJ08h9U5FlV1qYVp/0b5e45523c4cc8d9401987ec62769242/giant_mt.png" alt="غول">
+                <h3>🎖️ غول (Giant)</h3>
+                <span class="change-type nerf">🔻 ضعیف‌تر</span>
+            </div>
+            <p>توانایی وارد کردن خسارت درصدی برای هزینه فقط ۳ الگزیر بسیار خوب بود. هزینه الگزیر غول افزایش یافت.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💎 هزینه الگزیر</td>
+                            <td>۳</td>
+                            <td>۴</td>
+                            <td class="change-down">۳۳٪ افزایش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Witch -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/2gGqF7jnfeSA4thAhw4HSH/6eb262b16e0bd535791bd35611a0a9eb/witch_mt.png" alt="جادوگر">
+                <h3>🎖️ جادوگر (Witch)</h3>
+                <span class="change-type rework">🔄 بازطراحی</span>
+            </div>
+            <p>اسکلتون‌های جادوگر بیش از حد به جان ارباب خود وابسته بودند. حالا آنها آمار مستقل خود را دارند.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💀 اچ‌پی اسکلتون‌ها</td>
+                            <td>۲۰٪ اچ‌پی جادوگر</td>
+                            <td>۱۰۰ (ثابت)</td>
+                            <td class="change-major">تغییر ساختار</td>
+                        </tr>
+                        <tr>
+                            <td>💥 خسارت اسکلتون‌ها</td>
+                            <td>۲۰٪ خسارت جادوگر</td>
+                            <td>۸۰ (ثابت)</td>
+                            <td class="change-major">تغییر ساختار</td>
+                        </tr>
+                        <tr>
+                            <td>⏱️ زمان بازیابی تولید (Cooldown)</td>
+                            <td>۶ ثانیه</td>
+                            <td>۵ ثانیه</td>
+                            <td class="change-up">۱۶.۷٪ کاهش 📈</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="desc">
+                <strong>🔍 تحلیل:</strong> اسکلتون‌ها شکننده‌تر شده‌اند اما تعداد دفعات تولیدشان بیشتر است.
+            </div>
+        </div>
+
+        <!-- Dart Goblin -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/4Uh1ITV3L3UzRQeD8bWZ0o/ec842873e5c1e72533767f9e98370c82/dartgoblin_mt.png" alt="گابلین دارت انداز">
+                <h3>🎖️ گابلین دارت‌انداز (Dart Goblin)</h3>
+                <span class="change-type rework">🔄 بازطراحی</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💎 هزینه الگزیر</td>
+                            <td>۲</td>
+                            <td>۳</td>
+                            <td class="change-down">۵۰٪ افزایش 📉</td>
+                        </tr>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۳۵۰</td>
+                            <td>۴۵۰</td>
+                            <td class="change-up">۲۸.۶٪ افزایش 📈</td>
+                        </tr>
+                        <tr>
+                            <td>💥 خسارت (Damage)</td>
+                            <td>۸۰</td>
+                            <td>۱۰۰</td>
+                            <td class="change-up">۲۵٪ افزایش 📈</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mini P.E.K.K.A (May 26) -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/21yWx4Kx7KObtme0lLjQGS/742ab87c62e5ac5f4694eb57b0f9d058/minipekka_mt.png" alt="مینی پکا">
+                <h3>🎖️ مینی‌پکا (Mini P.E.K.K.A)</h3>
+                <span class="change-type rework">🔄 بازطراحی با توانایی جدید</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💎 هزینه الگزیر</td>
+                            <td>۲</td>
+                            <td>۳</td>
+                            <td class="change-down">۵۰٪ افزایش 📉</td>
+                        </tr>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۵۰۰</td>
+                            <td>۷۰۰</td>
+                            <td class="change-up">۴۰٪ افزایش 📈</td>
+                        </tr>
+                        <tr>
+                            <td>🌟 توانایی فوق‌العاده</td>
+                            <td>ندارد</td>
+                            <td><strong>توانایی جدید</strong></td>
+                            <td class="change-major">🆕 جدید</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Prince -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/7cEDYFjc8AzKMogKUlICV8/e4ee86a9ab263f5cd89b6f1ac1f1f481/prince_mt.png" alt="شاهزاده">
+                <h3>🎖️ شاهزاده (Prince)</h3>
+                <span class="change-type rework">🔄 بازطراحی</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💎 هزینه الگزیر</td>
+                            <td>۴</td>
+                            <td>۳</td>
+                            <td class="change-up">۲۵٪ کاهش 📈</td>
+                        </tr>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۱۱۰۰</td>
+                            <td>۹۰۰</td>
+                            <td class="change-down">۱۸٪ کاهش 📉</td>
+                        </tr>
+                        <tr>
+                            <td>💥 خسارت (Damage)</td>
+                            <td>۱۵۰</td>
+                            <td>۱۲۰</td>
+                            <td class="change-down">۲۰٪ کاهش 📉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Skeleton Dragons -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/57kajgpU6o7nuKoF4fBtCP/81c08f14f44ebac092d6dcb46a528486/skeletondragons_mt.png" alt="اژدهای اسکلتی">
+                <h3>🎖️ اژدهای اسکلتی (Skeleton Dragons)</h3>
+                <span class="change-type buff">🔺 تقویت اساسی + توانایی جدید</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💎 هزینه الگزیر</td>
+                            <td>۲</td>
+                            <td>۴</td>
+                            <td class="change-down">۱۰۰٪ افزایش 📉</td>
+                        </tr>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۵۰۰</td>
+                            <td>۸۰۰</td>
+                            <td class="change-up">۶۰٪ افزایش 📈</td>
+                        </tr>
+                        <tr>
+                            <td>⚡ سرعت حمله</td>
+                            <td>۱.۴ ثانیه</td>
+                            <td>۱ ثانیه</td>
+                            <td class="change-up">۲۸.۶٪ افزایش 📈</td>
+                        </tr>
+                        <tr>
+                            <td>🌟 توانایی فوق‌العاده</td>
+                            <td>ندارد</td>
+                            <td><strong>توانایی جدید</strong></td>
+                            <td class="change-major">🆕 جدید</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Wizard -->
+        <div class="card">
+            <div class="card-header">
+                <img src="https://clashroyale.inbox.supercell.com/9jtsgmsiuthj/40V6mXjNhYjWCX99PVe3jU/3d6e897ba0d7aa48d7aff73eebe925f4/wizard_mt.png" alt="جادوگر">
+                <h3>🎖️ جادوگر (Wizard)</h3>
+                <span class="change-type buff">🔺 تقویت اساسی</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>مشخصه</th>
+                            <th>مقدار قبل</th>
+                            <th>مقدار جدید</th>
+                            <th>درصد تغییر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>💎 هزینه الگزیر</td>
+                            <td>۲</td>
+                            <td>۴</td>
+                            <td class="change-down">۱۰۰٪ افزایش 📉</td>
+                        </tr>
+                        <tr>
+                            <td>❤️ نقطه‌سلامت (HP)</td>
+                            <td>۴۰۰</td>
+                            <td>۸۰۰</td>
+                            <td class="change-up">۱۰۰٪ افزایش 📈</td>
+                        </tr>
+                        <tr>
+                            <td>💥 خسارت (Damage)</td>
+                            <td>۸۰</td>
+                            <td>۱۲۰</td>
+                            <td class="change-up">۵۰٪ افزایش 📈</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="desc" style="margin-top: 20px;">
+            <strong>📌 نکته:</strong> آمار گابلین دارت‌انداز، مینی‌پکا، شاهزاده، اژدهای اسکلتی و جادوگر همگی متناسب با هزینه الگزیر جدیدشان تنظیم شده است.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 6: SUMMARY -->
+    <!-- ============================================================ -->
+    <div class="section summary-section" id="summary">
+        <div class="section-header">
+            <span class="icon">🏆</span>
+            <h2>جمع‌بندی و نکات مهم</h2>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>کاراکتر</th>
+                        <th>نوع تغییر</th>
+                        <th>میزان تأثیر</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>مینی‌پکا (۱ ژوئن)</td>
+                        <td class="change-down">🔻 ضعیف</td>
+                        <td>زیاد</td>
+                    </tr>
+                    <tr>
+                        <td>ویژگی Boss</td>
+                        <td class="change-down">🔻 ضعیف</td>
+                        <td>زیاد</td>
+                    </tr>
+                    <tr>
+                        <td>دوشس خنجری</td>
+                        <td class="change-up">🔺 تقویت</td>
+                        <td>متوسط</td>
+                    </tr>
+                    <tr>
+                        <td>نگهبان بزرگ (سپر)</td>
+                        <td class="change-up">🔺 تقویت</td>
+                        <td>زیاد</td>
+                    </tr>
+                    <tr>
+                        <td>غول</td>
+                        <td class="change-down">🔻 ضعیف</td>
+                        <td>متوسط</td>
+                    </tr>
+                    <tr>
+                        <td>اژدهای اسکلتی + جادوگر</td>
+                        <td class="change-up">🔺 تقویت اساسی</td>
+                        <td>زیاد</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="section" id="faq">
+        <div class="section-header">
+            <span class="icon">❓</span>
+            <h2>سؤالات متداول</h2>
+        </div>
+
+        <div class="faq-item">
+            <h4>آیا مینی‌پکا در این آپدیت ضعیف شده است؟</h4>
+            <p>بله، اچ‌پی مینی‌پکا در تغییرات ۱ ژوئن از ۷۰۰ به ۴۰۰ کاهش یافته (۴۳٪ کاهش) و در تغییرات ۲۶ می نیز با هزینه الگزیر ۳ و توانایی جدید بازطراحی شده است.</p>
+        </div>
+
+        <div class="faq-item">
+            <h4>بزرگ‌ترین تغییر این آپدیت چیست؟</h4>
+            <p>تغییرات مربوط به جادوگر و اژدهای اسکلتی که هر دو از هزینه ۲ به ۴ الگزیر رسیده‌اند و آمارشان به شدت افزایش یافته، همچنین تغییر سپر نگهبان بزرگ به حالت نامحدود.</p>
+        </div>
+
+        <div class="faq-item">
+            <h4>کدام حاکم بیشترین تغییر را داشته است؟</h4>
+            <p>نگهبان بزرگ (Grand Warden) با دریافت سپر نامحدود بیشترین تغییر را در بین حاکمان داشته است. این تغییر می‌تواند استراتژی بازی را کاملاً دگرگون کند.</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>📢 این مطلب بر اساس <a href="https://supercell.com/en/games/clashroyale/blog/release-notes/merge-tactics-season-9-balance-changes/" target="_blank">پست رسمی سوپرسل</a> تهیه و به فارسی ترجمه شده است.</p>
+        <p class="signature">🎮 به سلطنت ادامه دهید و ادغام کنید...</p>
+        <p style="margin-top: 8px; color: #666;">— تیم کلش رویال</p>
+    </div>
+
+</div>
+
+</body>
+</html>

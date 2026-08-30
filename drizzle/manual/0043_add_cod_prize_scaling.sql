@@ -1,0 +1,21 @@
+-- A COD room advertises its prize table for a full lobby. Paying those amounts
+-- when only a fraction of the seats sell is a guaranteed loss: a 100-seat room
+-- advertising 1,590,000 toman of prizes at a 23,000 toman entry fee collects
+-- 2,300,000 toman when full, but only 460,000 toman if 20 players turn up --
+-- less than a third of what it would owe.
+--
+-- `prize_scaling` makes the published table scale with how full the room got,
+-- so the operator's margin is the same at 20 players as at 100:
+--
+--   { "mode": "scaled" | "fixed",
+--     "fullPayoutAtBps": 10000,     -- fill ratio that pays the headline amounts
+--     "minimumViableBps": 2500 }    -- below this the room should be cancelled
+--
+-- `fixed` preserves the old behaviour for sponsored rooms whose prize money does
+-- not come out of entry fees.
+--
+-- Defaulting to `{}` rather than a populated object keeps this migration cheap
+-- on a large table; the normalizer fills in the defaults on read.
+-- Safe to run repeatedly.
+
+ALTER TABLE cod_rooms ADD COLUMN IF NOT EXISTS prize_scaling jsonb NOT NULL DEFAULT '{}'::jsonb;
