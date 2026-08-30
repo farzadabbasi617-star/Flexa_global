@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: gament
+    name: flexa-global
     env: node
     plan: free
     # Schema changes are applied as reviewed migrations, never implicitly during every build.
@@ -137,4 +137,4 @@ services:
       # Must be the public https origin. The callback URL is built from it, and
       # ZarinPal will not return the user to a mismatched or non-https host.
       - key: PAYMENT_CALLBACK_BASE_URL
-        value: https://www.gament1.ir
+        value: https://flexa-global.onrender.com
