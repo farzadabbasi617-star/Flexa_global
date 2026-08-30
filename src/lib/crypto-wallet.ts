@@ -17,7 +17,7 @@ export function validateCryptoAddress(address: string, network: "TRC20" | "ERC20
 
   if (network === "TRC20") {
     // TRC-20 addresses start with 'T' and are 34 characters long
-    return /^T[a-zA-19-9]{33}$/.test(trimmed);
+    return /^T[a-zA-Z0-9]{33}$/.test(trimmed);
   }
 
   if (network === "ERC20") {
