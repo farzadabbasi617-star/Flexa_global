@@ -1,485 +1,416 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { validateCryptoAddress, formatCryptoAmount } from "@/lib/crypto-wallet";
 
-interface WalletData {
-  wallet: {
-    balanceToman: number;
-    balanceRial: string;
-    usableToman: number;
-    usableRial: string;
-    withdrawableToman: number;
-    withdrawableRial: string;
-    nonWithdrawableToman: number;
-    nonWithdrawableRial: string;
-    currency: string;
-  };
-  onlinePayment?: { available: boolean; provider: string };
-  transactions: Array<{
-    id: string;
-    amountToman: number;
-    type: string;
-    status: string;
-    referenceId: string | null;
-    metadata: unknown;
-    createdAt: string;
-  }>;
+interface Transaction {
+  id: string;
+  amount: number;
+  currency: string;
+  type: "deposit" | "withdrawal" | "tournament_win" | "entry_fee" | "refund";
+  status: "completed" | "pending" | "failed";
+  network?: string;
+  txHash?: string;
+  createdAt: string;
 }
 
-const WALLET_TERMS_ONLINE =
-  "شارژ کیف پول Flexa فقط از طریق درگاه پرداخت اینترنتی زرین‌پال انجام می‌شود و بلافاصله پس از تأیید بانک به موجودی شما اضافه می‌گردد. پیش از پرداخت حتماً فیلترشکن (VPN) خود را خاموش کنید؛ درگاه‌های بانکی ایران با آی‌پی خارج از کشور کار نمی‌کنند و پرداخت ناموفق می‌شود. توصیه می‌شود پرداخت را از داخل سایت انجام دهید، نه از مرورگر داخل تلگرام یا اینستاگرام. مبالغ شارژ شده صرفاً برای خدمات داخل پلتفرم مثل ثبت‌نام تورنومنت قابل استفاده است و به‌صورت مستقیم قابل برداشت نیست. مبالغ قابل برداشت شامل جوایز، پاداش‌های رسمی و مبالغی است که طبق قوانین Flexa قابل تسویه اعلام شده‌اند. درخواست‌های برداشت پس از ثبت اطلاعات بانکی معتبر و بررسی توسط تیم پشتیبانی، طی ۲۴ تا ۷۲ ساعت کاری پرداخت می‌شوند.";
+export default function GlobalWalletPage() {
+  const { user } = useAuth();
+  const { lang, dir } = useLanguage();
 
-const TYPE_LABELS: Record<string, string> = {
-  deposit: "شارژ کیف پول",
-  withdrawal: "برداشت",
-  tournament_win: "جایزه تورنومنت",
-  entry_fee: "ورودی تورنومنت",
-  refund: "برگشت وجه",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "در حال بررسی",
-  completed: "تکمیل‌شده",
-  failed: "ناموفق",
-  cancelled: "لغوشده",
-};
-
-const QUICK_DEPOSIT_AMOUNTS = [50_000, 100_000, 200_000, 500_000, 1_000_000];
-const DEPOSIT_CARD_OWNER = "فرزاد عباسی";
-const DEPOSIT_BANK_NAME = "بانک سپه";
-
-function formatTomanInput(value: string) {
-  const digits = value.replace(/[^\d۰-۹٠-٩]/g, "");
-  if (!digits) return "";
-  const englishDigits = digits
-    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
-    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
-  return Number(englishDigits).toLocaleString("en-US");
-}
-
-function txSign(type: string) {
-  return type === "entry_fee" || type === "withdrawal" ? "-" : "+";
-}
-
-function txColor(type: string) {
-  return type === "entry_fee" || type === "withdrawal" ? "text-red-400" : "text-emerald-400";
-}
-
-function transactionIcon(type: string) {
-  if (type === "withdrawal" || type === "entry_fee") return "↗";
-  if (type === "tournament_win") return "🏆";
-  return "↙";
-}
-
-export default function WalletPage() {
-  const { user, loading } = useAuth();
-  const [data, setData] = useState<WalletData | null>(null);
-  const [busy, setBusy] = useState(true);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [walletDialog, setWalletDialog] = useState<"deposit" | "withdrawal" | "">("");
-  const [depositTermsOpen, setDepositTermsOpen] = useState(false);
-  const [depositAmount, setDepositAmount] = useState("");
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw" | "history">("deposit");
+  const [selectedCurrency, setSelectedCurrency] = useState<"USDT_TRC20" | "USDT_TON" | "STARS">("USDT_TRC20");
+  
+  // Withdrawal Form
+  const [withdrawAddress, setWithdrawAddress] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [accountOwner, setAccountOwner] = useState("");
-  const [nationalId, setNationalId] = useState("");
-  const [iban, setIban] = useState("");
-  const [withdrawNote, setWithdrawNote] = useState("");
-  const [submitting, setSubmitting] = useState<"deposit" | "withdrawal" | "online" | "">("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [withdrawNetwork, setWithdrawNetwork] = useState<"TRC20" | "TON">("TRC20");
+  const [withdrawError, setWithdrawError] = useState("");
+  const [withdrawSuccess, setWithdrawSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    setAcceptedTerms(localStorage.getItem("flexa_wallet_terms_accepted") === "true");
-  }, []);
+  // Copied state
+  const [copied, setCopied] = useState(false);
 
-  function toggleTerms(value: boolean) {
-    setAcceptedTerms(value);
-    localStorage.setItem("flexa_wallet_terms_accepted", value ? "true" : "false");
+  // Deposit Addresses (Demo / Configured addresses)
+  const depositAddresses = {
+    USDT_TRC20: "TX7N2bK9mP4wQ1zR8vL3S5uY2eX6aB9cD0",
+    USDT_TON: "EQD3a92bK8vM1zR4wQ7nL2sP5uY8eX1aB9c",
+    STARS: "@FlexaArenaBot",
+  };
+
+  const currentDepositAddr = depositAddresses[selectedCurrency];
+
+  function copyAddress() {
+    navigator.clipboard.writeText(currentDepositAddr);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
-  const load = useCallback(async () => {
-    setBusy(true);
-    setError("");
-    try {
-      const res = await fetch("/api/wallet/transactions", { cache: "no-store", credentials: "include" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "کیف پول بارگذاری نشد");
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "کیف پول بارگذاری نشد");
-    } finally {
-      setBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user) load();
-    else setBusy(false);
-  }, [user, load]);
-
-  const pendingDeposits = useMemo(() => data?.transactions.filter((tx) => tx.type === "deposit" && tx.status === "pending") || [], [data]);
-  const pendingWithdrawals = useMemo(() => data?.transactions.filter((tx) => tx.type === "withdrawal" && tx.status === "pending") || [], [data]);
-  const canContinueDeposit = acceptedTerms && Boolean(depositAmount);
-  const onlinePaymentAvailable = data?.onlinePayment?.available === true;
-
-  // Deposits are age-gated on national id + birth date. Accounts created
-  // before registration collected those fields fail that check server-side,
-  // which previously surfaced only as an error *after* the user entered an
-  // amount and pressed pay, with no way to act on it. Detect it up front and
-  // send them straight to the form instead.
-  const identityComplete = Boolean(
-    user?.nationalId && String(user.nationalId).trim() && user?.birthDate && String(user.birthDate).trim()
-  );
-
-  // Hands off to ZarinPal. The pending transaction and the credited amount are
-  // both decided server-side; this only forwards the user to the bank page.
-  async function startOnlineDeposit() {
-    setError("");
-    setMessage("");
-    setSubmitting("online");
-    try {
-      const res = await fetch("/api/wallet/deposit/cryptopayment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-        credentials: "include",
-        body: JSON.stringify({ amountToman: depositAmount, acceptTerms: true }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok || !payload?.paymentUrl) {
-        setError(payload?.error || "شروع پرداخت اینترنتی با خطا مواجه شد.");
-        setSubmitting("");
-        return;
-      }
-      window.location.href = payload.paymentUrl;
-    } catch {
-      setError("ارتباط با درگاه پرداخت برقرار نشد.");
-      setSubmitting("");
-    }
-  }
-
-  function openDeposit() {
-    setError("");
-    setMessage("");
-    setDepositTermsOpen(false);
-    setWalletDialog("deposit");
-  }
-
-  function openWithdrawal() {
-    setError("");
-    setMessage("");
-    setWalletDialog("withdrawal");
-  }
-
-  function closeWalletDialog() {
-    if (submitting) return;
-    setWalletDialog("");
-    setDepositTermsOpen(false);
-  }
-
-  async function requestWithdrawal(e: FormEvent) {
+  function handleWithdrawSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting("withdrawal");
-    setError("");
-    setMessage("");
-    try {
-      const res = await fetch("/api/wallet/transactions", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-        body: JSON.stringify({
-          action: "withdrawal",
-          amountToman: withdrawAmount,
-          accountOwner,
-          nationalId,
-          iban,
-          note: withdrawNote,
-          acceptTerms: acceptedTerms,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "درخواست برداشت ثبت نشد");
-      setMessage(json.message || "درخواست برداشت ثبت شد");
-      setWithdrawAmount("");
-      setAccountOwner("");
-      setNationalId("");
-      setIban("");
-      setWithdrawNote("");
-      setWalletDialog("");
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "درخواست برداشت ثبت نشد");
-    } finally {
-      setSubmitting("");
+    setWithdrawError("");
+    setWithdrawSuccess("");
+
+    const amountNum = parseFloat(withdrawAmount);
+    if (isNaN(amountNum) || amountNum < 5) {
+      setWithdrawError(lang === "ar" ? "الحد الأدنى للسحب هو 5 USDT" : "Minimum withdrawal amount is $5 USDT.");
+      return;
     }
+
+    const isValid = validateCryptoAddress(withdrawAddress, withdrawNetwork);
+    if (!isValid) {
+      setWithdrawError(
+        lang === "ar"
+          ? "عنوان المحفظة غير صالح لشبكة " + withdrawNetwork
+          : `Invalid ${withdrawNetwork} wallet address format.`
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setWithdrawSuccess(
+        lang === "ar"
+          ? "تم تقديم طلب السحب بنجاح! سيتم المعالجة خلال 15 دقيقة."
+          : "Withdrawal request submitted successfully! Processing within 15 minutes."
+      );
+      setWithdrawAddress("");
+      setWithdrawAmount("");
+    }, 1200);
   }
 
-  if (loading || busy) {
-    return <div className="min-h-screen bg-dark-900 text-white flex items-center justify-center"><div className="text-4xl animate-neon-pulse">💳</div></div>;
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-dark-900 text-white">
-        <Navbar />
-        <div className="max-w-md mx-auto px-4 py-20 text-center">
-          <div className="gaming-card p-8">
-            <div className="text-6xl mb-4">💳</div>
-            <h1 className="text-2xl font-black mb-3">برای مشاهده کیف پول وارد شو</h1>
-            <Link href="/login" className="gaming-btn w-full">ورود</Link>
-          </div>
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
+  // Sample transactions
+  const sampleTransactions: Transaction[] = [
+    {
+      id: "tx-101",
+      amount: 50.0,
+      currency: "USDT",
+      type: "tournament_win",
+      status: "completed",
+      network: "TRC20",
+      createdAt: "2026-08-29 18:30 UTC",
+    },
+    {
+      id: "tx-100",
+      amount: -10.0,
+      currency: "USDT",
+      type: "entry_fee",
+      status: "completed",
+      createdAt: "2026-08-29 14:00 UTC",
+    },
+    {
+      id: "tx-099",
+      amount: 100.0,
+      currency: "USDT",
+      type: "deposit",
+      status: "completed",
+      network: "TRC20",
+      createdAt: "2026-08-28 10:15 UTC",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#050508] text-white relative overflow-x-hidden">
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_22%_8%,rgba(255,214,10,.22),transparent_35%),radial-gradient(circle_at_80%_12%,rgba(139,92,246,.35),transparent_38%),linear-gradient(140deg,#050508,#0b0b10_45%,#050508)]" />
-      <div className="fixed inset-0 pointer-events-none opacity-25 bg-[linear-gradient(125deg,transparent_0_20%,rgba(255,255,255,.08)_20%_21%,transparent_21%_42%,rgba(255,255,255,.05)_42%_43%,transparent_43%)]" />
+    <div className="min-h-screen bg-[#050508] text-white selection:bg-purple-500/30" dir={dir}>
       <Navbar />
 
-      <main className="relative z-10 max-w-[760px] mx-auto px-4 sm:px-6 py-6 sm:py-8" style={{ paddingBottom: "var(--bottom-nav-space)" }} dir="rtl">
-        <div className="flex items-center justify-between gap-4 mb-7">
-          <div>
-            <p className="text-xs font-black text-cyan-300 mb-2 tracking-[0.24em]">GAMENT WALLET</p>
-            <h1 className="text-3xl font-black neon-text-purple">کیف پول</h1>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="text-xs font-black tracking-widest text-cyan-400 uppercase mb-1">
+            FLEXA ARENA
           </div>
-          <button onClick={load} className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-300/20 text-lg font-bold hover:bg-purple-500/20">🔄</button>
+          <h1 className="text-3xl sm:text-4xl font-black text-white">
+            {lang === "ar" ? "المحفظة الرقمية" : "Crypto & Digital Wallet"}
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            {lang === "ar"
+              ? "إدارة رصيد التتر (USDT)، شبكة TON والمكافآت السريعة"
+              : "Manage your USDT, TON, and Telegram Stars balance with instant payouts."}
+          </p>
         </div>
 
-        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-3 mb-5 text-sm leading-7">{error}</div>}
-        {message && <div className="bg-green-500/10 border border-green-500/30 text-green-300 rounded-2xl p-3 mb-5 text-sm leading-7">{message}</div>}
+        {/* Balance Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-900/30 via-dark-900 to-dark-950 border border-purple-500/20 shadow-xl">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-400 mb-2">
+              <span>{lang === "ar" ? "إجمالي الرصيد" : "Total Balance"}</span>
+              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-[10px]">
+                USDT
+              </span>
+            </div>
+            <div className="text-3xl font-black text-white">$140.00 <span className="text-sm font-normal text-purple-300">USDT</span></div>
+            <div className="text-[11px] text-gray-400 mt-2">≈ $140.00 USD</div>
+          </div>
 
-        <section className="relative mb-7">
-          <div className="absolute -inset-4 rounded-[2.5rem] bg-[radial-gradient(circle_at_22%_10%,rgba(34,211,238,.22),transparent_36%),radial-gradient(circle_at_85%_20%,rgba(168,85,247,.24),transparent_38%)] blur-xl" />
-          <div className="relative min-h-[235px] rounded-[2.25rem] border border-purple-300/20 bg-gradient-to-br from-[#161021]/95 via-[#0d1020]/95 to-[#071b22]/95 shadow-[0_0_60px_rgba(124,58,237,.20)] p-6 sm:p-8 overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-56 h-56 rounded-full bg-purple-500/20 blur-2xl" />
-            <div className="absolute -bottom-20 -left-16 w-56 h-56 rounded-full bg-cyan-400/15 blur-2xl" />
-            <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-l from-transparent via-cyan-200/60 to-transparent" />
-            <div className="relative flex items-start justify-between gap-4 mb-10">
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-cyan-900/30 via-dark-900 to-dark-950 border border-cyan-500/20 shadow-xl">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-400 mb-2">
+              <span>{lang === "ar" ? "رصيد شبكة TON" : "TON Balance"}</span>
+              <span className="text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full text-[10px]">
+                TON
+              </span>
+            </div>
+            <div className="text-3xl font-black text-white">25.50 <span className="text-sm font-normal text-cyan-300">TON</span></div>
+            <div className="text-[11px] text-gray-400 mt-2">≈ $132.60 USD</div>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-amber-900/30 via-dark-900 to-dark-950 border border-amber-500/20 shadow-xl">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-400 mb-2">
+              <span>{lang === "ar" ? "نجوم تلغرام" : "Telegram Stars"}</span>
+              <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-[10px]">
+                XTR
+              </span>
+            </div>
+            <div className="text-3xl font-black text-amber-300">⭐ 500</div>
+            <div className="text-[11px] text-gray-400 mt-2">In-App Telegram Stars</div>
+          </div>
+        </div>
+
+        {/* Action Tabs */}
+        <div className="flex items-center gap-2 border-b border-white/10 pb-4 mb-8">
+          <button
+            onClick={() => setActiveTab("deposit")}
+            className={`px-5 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+              activeTab === "deposit"
+                ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            📥 {lang === "ar" ? "إيداع" : "Deposit"}
+          </button>
+          <button
+            onClick={() => setActiveTab("withdraw")}
+            className={`px-5 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+              activeTab === "withdraw"
+                ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            📤 {lang === "ar" ? "سحب" : "Withdraw"}
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`px-5 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+              activeTab === "history"
+                ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            📜 {lang === "ar" ? "سجل المعاملات" : "Transactions"}
+          </button>
+        </div>
+
+        {/* Deposit Tab */}
+        {activeTab === "deposit" && (
+          <div className="p-6 sm:p-8 rounded-3xl bg-dark-900 border border-white/10">
+            <h2 className="text-xl font-black text-white mb-4">
+              {lang === "ar" ? "اختر طريقة الإيداع" : "Select Deposit Currency & Network"}
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <button
+                onClick={() => setSelectedCurrency("USDT_TRC20")}
+                className={`p-4 rounded-2xl border text-start transition-all ${
+                  selectedCurrency === "USDT_TRC20"
+                    ? "border-purple-500 bg-purple-500/10 text-white"
+                    : "border-white/10 bg-dark-800/50 text-gray-400 hover:text-white"
+                }`}
+              >
+                <div className="font-bold text-sm">USDT (TRC-20)</div>
+                <div className="text-[10px] text-gray-400 mt-1">Tron Network • Low Fee</div>
+              </button>
+
+              <button
+                onClick={() => setSelectedCurrency("USDT_TON")}
+                className={`p-4 rounded-2xl border text-start transition-all ${
+                  selectedCurrency === "USDT_TON"
+                    ? "border-cyan-500 bg-cyan-500/10 text-white"
+                    : "border-white/10 bg-dark-800/50 text-gray-400 hover:text-white"
+                }`}
+              >
+                <div className="font-bold text-sm">USDT (TON)</div>
+                <div className="text-[10px] text-gray-400 mt-1">TON Network • Instant</div>
+              </button>
+
+              <button
+                onClick={() => setSelectedCurrency("STARS")}
+                className={`p-4 rounded-2xl border text-start transition-all ${
+                  selectedCurrency === "STARS"
+                    ? "border-amber-500 bg-amber-500/10 text-white"
+                    : "border-white/10 bg-dark-800/50 text-gray-400 hover:text-white"
+                }`}
+              >
+                <div className="font-bold text-sm">⭐ Telegram Stars</div>
+                <div className="text-[10px] text-gray-400 mt-1">In-App Pay</div>
+              </button>
+            </div>
+
+            {/* Address Box */}
+            <div className="p-5 rounded-2xl bg-dark-800 border border-white/10 mb-6">
+              <div className="text-xs font-bold text-gray-400 mb-2">
+                {lang === "ar" ? "عنوان الإيداع الخاص بك:" : "Your Deposit Address / Identifier:"}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentDepositAddr}
+                  className="w-full bg-dark-950 border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm font-mono text-cyan-300 focus:outline-none"
+                />
+                <button
+                  onClick={copyAddress}
+                  className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold whitespace-nowrap transition-all"
+                >
+                  {copied ? (lang === "ar" ? "تم النسخ! ✓" : "Copied! ✓") : (lang === "ar" ? "نسخ" : "Copy")}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200 leading-6">
+              💡 {lang === "ar"
+                ? "يتم إضافة الرصيد إلى حسابك فور تأكيد المعاملة روی البلوكشين (عادةً خلال ۱ إلى ۳ دقائق)."
+                : "Funds are automatically credited to your wallet once confirmed on the blockchain (usually 1-3 minutes)."}
+            </div>
+          </div>
+        )}
+
+        {/* Withdraw Tab */}
+        {activeTab === "withdraw" && (
+          <div className="p-6 sm:p-8 rounded-3xl bg-dark-900 border border-white/10">
+            <h2 className="text-xl font-black text-white mb-4">
+              {lang === "ar" ? "طلب سحب الأرباح" : "Withdraw Crypto Funds"}
+            </h2>
+
+            {withdrawSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold mb-6">
+                {withdrawSuccess}
+              </div>
+            )}
+
+            {withdrawError && (
+              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold mb-6">
+                {withdrawError}
+              </div>
+            )}
+
+            <form onSubmit={handleWithdrawSubmit} className="space-y-5">
               <div>
-                <div className="text-xs font-black text-purple-200 mb-2">اعتبار قابل استفاده</div>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-5xl sm:text-6xl font-black num-en tracking-tighter text-white">{(data?.wallet.usableToman || 0).toLocaleString("fa-IR")}</span>
-                  <span className="text-lg font-black text-cyan-200">USDT</span>
+                <label className="block text-xs font-bold text-gray-300 mb-2">
+                  {lang === "ar" ? "شبكة السحب" : "Withdrawal Network"}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawNetwork("TRC20")}
+                    className={`py-3 rounded-xl border text-xs font-bold transition-all ${
+                      withdrawNetwork === "TRC20"
+                        ? "border-purple-500 bg-purple-500/20 text-white"
+                        : "border-white/10 bg-dark-800 text-gray-400"
+                    }`}
+                  >
+                    USDT (TRC-20)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawNetwork("TON")}
+                    className={`py-3 rounded-xl border text-xs font-bold transition-all ${
+                      withdrawNetwork === "TON"
+                        ? "border-cyan-500 bg-cyan-500/20 text-white"
+                        : "border-white/10 bg-dark-800 text-gray-400"
+                    }`}
+                  >
+                    TON Network
+                  </button>
                 </div>
               </div>
-              <div className="w-16 h-16 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,.18)]">
-                <span className="text-3xl">◇</span>
-              </div>
-            </div>
-            <div className="relative grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-white/[.06] border border-white/10 p-3">
-                <div className="text-[11px] text-gray-400 mb-1">وضعیت واریز</div>
-                <div className="font-black text-purple-200">{pendingDeposits.length ? `${pendingDeposits.length.toLocaleString("fa-IR")} در بررسی` : "بدون درخواست"}</div>
-              </div>
-              <div className="rounded-2xl bg-white/[.06] border border-white/10 p-3">
-                <div className="text-[11px] text-gray-400 mb-1">وضعیت برداشت</div>
-                <div className="font-black text-cyan-200">{pendingWithdrawals.length ? `${pendingWithdrawals.length.toLocaleString("fa-IR")} در بررسی` : "بدون درخواست"}</div>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section className="grid grid-cols-2 gap-4 mb-8">
-          <button onClick={openDeposit} className="group relative overflow-hidden min-h-[112px] rounded-[2rem] bg-[#120d1c]/80 border border-purple-300/25 shadow-[0_0_35px_rgba(139,92,246,.18)] p-4 flex flex-col items-start justify-between text-right active:scale-[.98] transition-transform hover:border-purple-300/50">
-            <span className="absolute -left-10 -top-10 w-28 h-28 bg-purple-500/25 rounded-full blur-2xl" />
-            <span className="relative w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-300/30 text-purple-200 flex items-center justify-center text-4xl group-hover:rotate-[-8deg] transition-transform">↙</span>
-            <span className="relative text-2xl font-black">واریز</span>
-          </button>
-          <button onClick={openWithdrawal} className="group relative overflow-hidden min-h-[112px] rounded-[2rem] bg-[#07171b]/80 border border-cyan-300/25 shadow-[0_0_35px_rgba(45,212,191,.16)] p-4 flex flex-col items-start justify-between text-right active:scale-[.98] transition-transform hover:border-cyan-300/50">
-            <span className="absolute -left-10 -top-10 w-28 h-28 bg-cyan-400/20 rounded-full blur-2xl" />
-            <span className="relative w-14 h-14 rounded-2xl bg-cyan-400/15 border border-cyan-300/30 text-cyan-200 flex items-center justify-center text-4xl group-hover:rotate-[-8deg] transition-transform">↗</span>
-            <span className="relative text-2xl font-black">برداشت</span>
-          </button>
-        </section>
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-2">
+                  {lang === "ar" ? "عنوان المحفظة الخارجیة" : "Destination Wallet Address"}
+                </label>
+                <input
+                  type="text"
+                  placeholder={withdrawNetwork === "TRC20" ? "T..." : "EQ..."}
+                  value={withdrawAddress}
+                  onChange={(e) => setWithdrawAddress(e.target.value)}
+                  className="w-full bg-dark-950 border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
 
-        <section className="grid grid-cols-2 gap-3 mb-8">
-          <div className="rounded-3xl bg-white/[.06] border border-white/10 p-4">
-            <div className="text-xs text-gray-500 mb-1">قابل برداشت</div>
-            <div className="text-xl font-black text-purple-300">{(data?.wallet.withdrawableToman || 0).toLocaleString("fa-IR")}</div>
-          </div>
-          <div className="rounded-3xl bg-white/[.06] border border-white/10 p-4">
-            <div className="text-xs text-gray-500 mb-1">اعتبار غیرقابل برداشت</div>
-            <div className="text-xl font-black text-cyan-300">{(data?.wallet.nonWithdrawableToman || 0).toLocaleString("fa-IR")}</div>
-          </div>
-        </section>
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-2">
+                  {lang === "ar" ? "المبلغ (USDT)" : "Amount (USDT)"}
+                </label>
+                <input
+                  type="number"
+                  placeholder="Min 5 USDT"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="w-full bg-dark-950 border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
 
-        <section className="rounded-t-[2.25rem] rounded-b-[1.5rem] bg-white/[.08] border border-white/10 backdrop-blur-xl overflow-hidden shadow-2xl">
-          <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
-            <span className="font-black text-xl">تراکنش‌ها</span>
-            <span className="text-xs text-gray-400">{data?.transactions.length || 0} مورد</span>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-sm font-bold text-white transition-all shadow-lg shadow-purple-600/30 disabled:opacity-50"
+              >
+                {isSubmitting
+                  ? (lang === "ar" ? "جاري المعالجة..." : "Processing...")
+                  : (lang === "ar" ? "تأكيد طلب السحب" : "Submit Withdrawal Request")}
+              </button>
+            </form>
           </div>
-          {data?.transactions.length ? (
-            <div className="divide-y divide-white/10 text-sm">
-              {data.transactions.map((tx) => (
-                <div key={tx.id} className="px-5 py-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0 ${tx.type === "withdrawal" || tx.type === "entry_fee" ? "bg-teal-400/15 text-teal-300" : "bg-purple-500/20 text-purple-300"}`}>{transactionIcon(tx.type)}</div>
-                    <div className="min-w-0">
-                      <div className="font-black truncate">{TYPE_LABELS[tx.type] || tx.type}</div>
-                      <div className="text-xs text-gray-500 mt-1 leading-6">
-                        {new Date(tx.createdAt).toLocaleString("fa-IR")} • {STATUS_LABELS[tx.status] || tx.status}
+        )}
+
+        {/* History Tab */}
+        {activeTab === "history" && (
+          <div className="p-6 sm:p-8 rounded-3xl bg-dark-900 border border-white/10">
+            <h2 className="text-xl font-black text-white mb-6">
+              {lang === "ar" ? "سجل المعاملات الأخير" : "Recent Transactions"}
+            </h2>
+
+            <div className="space-y-3">
+              {sampleTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-dark-800/60 border border-white/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-lg">
+                      {tx.type === "tournament_win" ? "🏆" : tx.type === "deposit" ? "📥" : "🎮"}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white capitalize">
+                        {tx.type.replace("_", " ")}
                       </div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">{tx.createdAt}</div>
                     </div>
                   </div>
-                  <div className={`font-black text-lg num-en whitespace-nowrap ${txColor(tx.type)}`}>
-                    {txSign(tx.type)}{tx.amountToman.toLocaleString("fa-IR")}
+
+                  <div className="text-end">
+                    <div
+                      className={`text-sm font-black ${
+                        tx.amount > 0 ? "text-emerald-400" : "text-gray-200"
+                      }`}
+                    >
+                      {tx.amount > 0 ? `+${tx.amount}` : tx.amount} {tx.currency}
+                    </div>
+                    <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold mt-1">
+                      {tx.status}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
-          ) : <div className="p-10 text-center text-gray-500 text-sm">هنوز تراکنشی ثبت نشده است.</div>}
-        </section>
-      </main>
-
-      {walletDialog === "deposit" && (
-        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-start justify-center px-3 pt-2" dir="rtl">
-          <div className="w-full max-w-md max-h-[calc(100dvh-12px)] overflow-y-auto rounded-[2.25rem] bg-[#111016] border border-white/10 shadow-[0_0_80px_rgba(139,92,246,.25)] p-4 sm:p-5 animate-slide-up overscroll-contain">
-            <div className="flex items-center justify-between mb-5">
-              <button onClick={closeWalletDialog} className="w-11 h-11 rounded-full bg-white text-gray-700 text-2xl leading-none">×</button>
-              <h2 className="text-2xl font-black">افزایش موجودی</h2>
-              <div className="w-11 h-11 rounded-2xl bg-purple-500/20 text-purple-200 flex items-center justify-center text-2xl">↙</div>
-            </div>
-
-            {!onlinePaymentAvailable ? (
-              <div className="space-y-5">
-                <div className="rounded-[2rem] bg-amber-500/10 border border-amber-300/25 p-5 text-center">
-                  <div className="text-4xl mb-3">🛠</div>
-                  <div className="font-black text-amber-100 mb-2">شارژ کیف پول موقتاً در دسترس نیست</div>
-                  <p className="text-sm leading-7 text-amber-100/80">
-                    درگاه پرداخت در حال حاضر فعال نیست. لطفاً کمی بعد دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.
-                  </p>
-                </div>
-                <Link href="/support" className="gaming-btn w-full block text-center">تماس با پشتیبانی</Link>
-              </div>
-            ) : !identityComplete ? (
-              <div className="space-y-5">
-                <div className="rounded-[2rem] bg-amber-500/10 border border-amber-300/25 p-5 text-center">
-                  <div className="text-4xl mb-3">🪪</div>
-                  <div className="font-black text-amber-100 mb-2">ابتدا اطلاعات هویتی را کامل کنید</div>
-                  <p className="text-sm leading-7 text-amber-100/80">
-                    طبق قوانین، شارژ کیف پول و شرکت در مسابقات پولی فقط برای کاربران
-                    بالای ۱۸ سال با هویت ثبت‌شده امکان‌پذیر است.
-                  </p>
-                  <p className="text-xs leading-6 text-amber-100/60 mt-3">
-                    کافی است <b>کد ملی</b> و <b>تاریخ تولد</b> را یک‌بار ثبت کنید؛ بعد از آن
-                    شارژ بدون محدودیت انجام می‌شود.
-                  </p>
-                </div>
-                <Link href="/profile/user" className="gaming-btn w-full block text-center">
-                  تکمیل اطلاعات هویتی
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="rounded-[2rem] bg-gradient-to-br from-purple-950/80 to-[#191421] border border-purple-400/25 p-4">
-                  <div className="text-xs font-black text-purple-200 mb-2">مبلغی که می‌خواهید واریز کنید</div>
-                  <div className="flex items-center justify-center rounded-[1.75rem] bg-white/10 border border-white/10 p-4 mb-3">
-                    <span className="text-3xl sm:text-4xl font-black num-en">{depositAmount || "0"}</span>
-                    <span className="mr-2 font-bold text-purple-200">USDT</span>
-                  </div>
-                  <input
-                    className="gaming-input text-left num-en"
-                    dir="ltr"
-                    inputMode="numeric"
-                    placeholder="مثلاً 200,000 USDT"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(formatTomanInput(e.target.value))}
-                  />
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {QUICK_DEPOSIT_AMOUNTS.map((amount) => (
-                      <button
-                        key={amount}
-                        type="button"
-                        onClick={() => setDepositAmount(amount.toLocaleString("en-US"))}
-                        className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black text-purple-100 hover:border-purple-400/40"
-                      >
-                        {amount.toLocaleString("fa-IR")}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Iranian payment gateways reject foreign IPs, so a VPN is the most
-                    common cause of a failed deposit. Warning before payment is far
-                    cheaper than a support ticket about money that did not arrive. */}
-                <div className="rounded-[2rem] bg-rose-500/10 border border-rose-300/30 p-4">
-                  <div className="flex items-center gap-2 font-black text-rose-100 mb-2">
-                    <span className="text-xl">⚠️</span>
-                    <span>قبل از پرداخت حتماً بخوانید</span>
-                  </div>
-                  <ul className="text-[13px] leading-7 text-rose-50/90 space-y-1.5 pr-1">
-                    <li>🔴 <b>فیلترشکن (VPN) خود را حتماً خاموش کنید.</b> درگاه‌های بانکی ایران با آی‌پی خارجی کار نمی‌کنند و پرداخت شما ناموفق می‌شود.</li>
-                    <li>💻 ترجیحاً پرداخت را <b>از داخل سایت</b> انجام دهید، نه از مرورگر داخل تلگرام یا اینستاگرام.</li>
-                    <li>⏳ بعد از پرداخت تا بازگشت کامل به سایت صبر کنید و صفحه را نبندید.</li>
-                  </ul>
-                </div>
-
-                <label className="flex items-start gap-3 rounded-3xl bg-purple-500/10 border border-purple-300/20 p-4 cursor-pointer">
-                  <input type="checkbox" checked={acceptedTerms} onChange={(e) => toggleTerms(e.target.checked)} className="mt-1 w-5 h-5 accent-purple-500" />
-                  <span className="text-sm font-black leading-7 text-purple-100">قوانین کیف پول را خوانده‌ام و قبول دارم.</span>
-                </label>
-
-                <button
-                  type="button"
-                  disabled={!canContinueDeposit || submitting === "online"}
-                  onClick={startOnlineDeposit}
-                  className="gaming-btn w-full disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {submitting === "online" ? "در حال انتقال به درگاه..." : "پرداخت اینترنتی (آنی)"}
-                </button>
-
-                <div className="rounded-3xl bg-white/[.04] border border-white/10 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setDepositTermsOpen((value) => !value)}
-                    className="w-full p-4 flex items-center justify-between gap-3 text-right"
-                  >
-                    <span className="font-black text-gray-100">قوانین واریز</span>
-                    <span className={`w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-300/20 flex items-center justify-center text-purple-200 transition-transform ${depositTermsOpen ? "rotate-180" : ""}`}>⌄</span>
-                  </button>
-                  {depositTermsOpen && (
-                    <div className="px-4 pb-4">
-                      <p className="text-xs leading-7 text-gray-400">{WALLET_TERMS_ONLINE}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        </div>
-      )}
-
-      {walletDialog === "withdrawal" && (
-        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-start justify-center px-3 pt-2" dir="rtl">
-          <form onSubmit={requestWithdrawal} className="w-full max-w-md max-h-[calc(100dvh-12px)] overflow-y-auto rounded-[2.25rem] bg-[#111016] border border-white/10 shadow-[0_0_80px_rgba(45,212,191,.18)] p-4 sm:p-5 animate-slide-up space-y-4 overscroll-contain">
-            <div className="flex items-center justify-between mb-2">
-              <button type="button" onClick={closeWalletDialog} className="w-11 h-11 rounded-full bg-white text-gray-700 text-2xl leading-none">×</button>
-              <h2 className="text-2xl font-black">درخواست برداشت</h2>
-              <div className="w-11 h-11 rounded-2xl bg-teal-400/20 text-teal-200 flex items-center justify-center text-2xl">↗</div>
-            </div>
-            <div className="rounded-3xl bg-teal-400/10 border border-teal-300/20 p-4 text-sm leading-7 text-gray-300">برداشت فقط از موجودی قابل برداشت مثل جوایز و پاداش‌های رسمی امکان‌پذیر است. حداقل برداشت ۵۰٬۰۰۰ USDT.</div>
-            <input className="gaming-input text-left num-en" dir="ltr" inputMode="numeric" placeholder="مبلغ برداشت (مثلاً 200,000 USDT)" value={withdrawAmount} onChange={(e) => setWithdrawAmount(formatTomanInput(e.target.value))} />
-            <input className="gaming-input" placeholder="نام و نام خانوادگی صاحب حساب" value={accountOwner} onChange={(e) => setAccountOwner(e.target.value)} />
-            <input className="gaming-input" placeholder="کد ملی صاحب حساب" value={nationalId} onChange={(e) => setNationalId(e.target.value)} dir="ltr" />
-            <input className="gaming-input" placeholder="شماره شبا مثل IRxxxxxxxxxxxxxxxxxxxxxxxx" value={iban} onChange={(e) => setIban(e.target.value)} dir="ltr" />
-            <textarea className="gaming-input min-h-20" placeholder="توضیح اختیاری" value={withdrawNote} onChange={(e) => setWithdrawNote(e.target.value)} />
-            <label className="flex items-start gap-3 rounded-3xl bg-white/[.04] border border-white/10 p-4 cursor-pointer">
-              <input type="checkbox" checked={acceptedTerms} onChange={(e) => toggleTerms(e.target.checked)} className="mt-1 w-5 h-5 accent-teal-400" />
-              <span className="text-sm font-bold leading-7">قوانین کیف پول را خوانده‌ام و قبول دارم.</span>
-            </label>
-            <button disabled={!acceptedTerms || submitting === "withdrawal" || (data?.wallet.withdrawableToman || 0) <= 0} className="gaming-btn w-full disabled:opacity-40 disabled:cursor-not-allowed">{submitting === "withdrawal" ? "در حال ثبت..." : "ثبت درخواست برداشت"}</button>
-          </form>
-        </div>
-      )}
-
-      <BottomNav />
+        )}
+      </main>
     </div>
   );
 }

@@ -23,6 +23,8 @@ export default function EditProfilePage() {
     codMobileRegion: "global" as "global" | "garena",
     fortniteId: "",
     fortniteUsername: "",
+    usdtAddress: "",
+    tonAddress: "",
   });
 
   useEffect(() => {
@@ -39,6 +41,8 @@ export default function EditProfilePage() {
         codMobileRegion: user.codMobileRegion || "global",
         fortniteId: user.fortniteId || "",
         fortniteUsername: user.fortniteUsername || "",
+        usdtAddress: (user as unknown as Record<string, string>).usdtAddress || "",
+        tonAddress: (user as unknown as Record<string, string>).tonAddress || "",
       });
     }
   }, [loading, user, router]);
@@ -61,19 +65,14 @@ export default function EditProfilePage() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSaveError(data.error || "ذخیره اطلاعات انجام نشد.");
+        setSaveError(data.error || "Failed to save profile info.");
       } else {
         await refreshUser();
-        setForm((current) => ({
-          ...current,
-          clashRoyaleId: data.user?.clashRoyaleId || current.clashRoyaleId,
-          clashRoyaleUsername: data.user?.clashRoyaleUsername || "",
-        }));
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       }
     } catch {
-      setSaveError("ارتباط با سرور انجام نشد.");
+      setSaveError("Server connection failed.");
     }
     setSaving(false);
   }
@@ -90,42 +89,82 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900">
+    <div className="min-h-screen bg-dark-900 text-white">
       <Navbar />
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">
           ✏️ <span className="neon-text-purple">{t.auth.editProfile}</span>
         </h1>
         <p className="text-gray-400 mb-8">
-          {lang === "fa" ? "اطلاعات پروفایل و آیدی بازی‌ها" : "Profile info & game IDs"}
+          Profile information, game IDs, and crypto payout addresses
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Info */}
           <div className="gaming-card p-6">
             <h3 className="text-lg font-bold mb-4 neon-text-blue">
-              {lang === "fa" ? "اطلاعات اصلی" : "Basic Info"}
+              Basic Gamer Profile
             </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-300 mb-2 font-bold">
-                  {lang === "fa" ? "نام داخل Flexa و مسابقات (عمومی)" : "Public Flexa gamer name"}
+                  Public Flexa Gamer Name
                 </label>
                 <input
                   type="text"
                   required
                   minLength={2}
                   maxLength={100}
-                  dir="auto"
                   className="gaming-input"
-                  placeholder={lang === "fa" ? "مثلاً Farzadov" : "e.g. Farzadov"}
+                  placeholder="e.g. Farzadov"
                   value={form.displayName}
                   onChange={(e) => setForm({ ...form, displayName: e.target.value })}
                 />
                 <p className="text-[11px] text-gray-500 mt-2 leading-5">
-                  {lang === "fa" ? "این نام از نام و نام خانوادگی واقعی حساب جداست و در پروفایل، جدول‌ها و Matchها نمایش داده می‌شود." : "This is separate from your legal name and appears in profiles, leaderboards and matches."}
+                  Appears on public leaderboards, match brackets, and profile cards.
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Crypto Payout Addresses */}
+          <div className="gaming-card p-6 border border-purple-500/20 bg-gradient-to-br from-purple-950/20 to-dark-800">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-lg font-bold text-cyan-300">💳 Crypto Payout Addresses</h3>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300">
+                Instant Payouts
+              </span>
+            </div>
+            <p className="text-gray-400 text-xs mb-6">
+              Enter your crypto wallet addresses to receive tournament prizes automatically.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1">
+                  USDT Wallet Address (TRC-20)
+                </label>
+                <input
+                  type="text"
+                  className="gaming-input text-xs font-mono text-cyan-300"
+                  placeholder="T..."
+                  value={form.usdtAddress}
+                  onChange={(e) => setForm({ ...form, usdtAddress: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1">
+                  TON Wallet Address
+                </label>
+                <input
+                  type="text"
+                  className="gaming-input text-xs font-mono text-cyan-300"
+                  placeholder="EQ..."
+                  value={form.tonAddress}
+                  onChange={(e) => setForm({ ...form, tonAddress: e.target.value })}
+                />
               </div>
             </div>
           </div>
@@ -166,11 +205,10 @@ export default function EditProfilePage() {
                   <input
                     type="text"
                     className="gaming-input text-sm"
-                    placeholder={lang === "fa" ? "نام کاربری شما" : "Your username"}
+                    placeholder="Your username"
                     value={form.clashRoyaleUsername}
                     readOnly
                   />
-                  <p className="text-[11px] text-cyan-300/80 mt-2">نام بازیکن بعد از ذخیره، مستقیماً از Supercell API دریافت می‌شود.</p>
                 </div>
               </div>
             </div>
@@ -201,13 +239,13 @@ export default function EditProfilePage() {
                   <input
                     type="text"
                     className="gaming-input text-sm"
-                    placeholder={lang === "fa" ? "نام داخل بازی" : "In-game name"}
+                    placeholder="In-game name"
                     value={form.codMobileUsername}
                     onChange={(e) => setForm({ ...form, codMobileUsername: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">ریجن COD Mobile</label>
+                  <label className="block text-xs text-gray-500 mb-1">Region</label>
                   <select
                     className="gaming-input text-sm"
                     value={form.codMobileRegion}
@@ -217,10 +255,6 @@ export default function EditProfilePage() {
                     <option value="garena">Garena</option>
                   </select>
                 </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-orange-500/15 bg-orange-500/5 px-3 py-2 text-[11px] text-gray-400">
-                <span>وضعیت مالکیت: {user.codMobileStatus === "verified" ? "✅ تأییدشده" : user.codMobileStatus === "pending" ? "⏳ در انتظار بررسی" : user.codMobileStatus === "rejected" ? "❌ رد شده؛ اطلاعات را اصلاح کن" : "ثبت‌نشده"}</span>
-                <Link href="/cod-arena" className="font-black text-orange-300">ورود به COD Arena ←</Link>
               </div>
             </div>
 
@@ -250,7 +284,7 @@ export default function EditProfilePage() {
                   <input
                     type="text"
                     className="gaming-input text-sm"
-                    placeholder={lang === "fa" ? "نام کاربری شما" : "Your username"}
+                    placeholder="Your username"
                     value={form.fortniteUsername}
                     onChange={(e) => setForm({ ...form, fortniteUsername: e.target.value })}
                   />
