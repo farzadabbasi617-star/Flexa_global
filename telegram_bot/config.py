@@ -6,7 +6,7 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
-except ImportError:  # Allows basic imports before dependencies are installed.
+except ImportError:
     def load_dotenv(*args, **kwargs):
         return False
 
@@ -33,27 +33,28 @@ def _split_int_csv(value: str | None) -> set[int]:
         try:
             ids.add(int(item))
         except ValueError:
-            raise ValueError(f"ADMIN_IDS contains a non-numeric value: {item!r}")
+            pass
     return ids
 
 
-def _bool(value: str | None, default: bool = False) -> bool:
-    if value is None or value.strip() == "":
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "y", "on", "بله", "آره"}
+DEFAULT_RULES_EN = """
+📜 Flexa Arena - Tournament Rules & Fair Play
 
+1) Skill-Based Competition: All tournaments are strictly skill-based esports competitions.
+2) Authentic Game IDs: Your registered Game ID (CODM UID, Clash Royale Tag) must match your active in-game profile.
+3) Zero Tolerance for Cheating: Hacks, scripts, hacks, or score manipulation will result in immediate permanent disqualification.
+4) Match Verification: Results are verified through screenshot proof and automated AI log analysis.
+5) Crypto & Instant Payouts: Winners receive prize payouts in USDT / TON directly to their registered wallet.
+""".strip()
 
-DEFAULT_RULES = """
-📜 قوانین خلاصه گیمنت
+DEFAULT_RULES_AR = """
+📜 Flexa Arena - القوانين واللعب العادل
 
-1) Gament پلتفرم مدیریت، ثبت‌نام، اطلاع‌رسانی، داوری و پشتیبانی تورنومنت‌های گیمینگ است.
-2) مسابقات بر پایه مهارت برگزار می‌شوند؛ هرگونه شرط‌بندی، تبانی مالی، خرید/فروش نتیجه یا قمار ممنوع است.
-3) اطلاعات ثبت‌شده شامل شماره تماس، Gament ID و آیدی بازی باید صحیح و متعلق به خود بازیکن باشد.
-4) آیدی بازی در روز مسابقه باید با آیدی ثبت‌شده در پروفایل/ربات مطابقت داشته باشد.
-5) استفاده از چیت، هک، اسکریپت، باگ، اکانت اشتراکی، جعل اسکرین‌شات یا هر ابزار غیرمجاز باعث حذف می‌شود.
-6) نتیجه مسابقه باید طبق قوانین همان روم و با مدارک قابل بررسی ثبت شود؛ داوری انسانی/هوشمند گیمنت ملاک تصمیم نهایی است.
-7) بی‌احترامی، تهدید، نشر اطلاعات شخصی، اسپم و تبلیغات بدون مجوز در چت یا مسابقه ممنوع است.
-8) برای ثبت‌نام رسمی، پرداخت ورودی احتمالی، مشاهده لابی و دریافت جایزه باید حساب وب‌اپ گیمنت تکمیل باشد.
+1) منافسات قتالية قائمة على المهارة: جميع البطولات هي منافسات رياضات إلكترونية عادلة.
+2) معرفات ألعاب صحيحة: يجب أن يطابق معرف اللعبة (CODM UID ، Clash Tag) حسابك الفعلي داخل اللعبة.
+3) منع الغش تماماً: استخدام أي هكر أو ثغرات يؤدي إلى الحظر الدائم وحرمان الجوائز.
+4) التحقق من النتائج: يتم إثبات النتائج عبر صور الشاشة وتحليل الذكاء الاصطناعي.
+5) جوائز فورية بالكريبتو: يتم توزيع الجوائز بالـ USDT و TON مباشرة على محفظتك.
 """.strip()
 
 
@@ -65,39 +66,24 @@ class Settings:
     brand_name: str
     app_url: str
     games: list[str]
-    platforms: list[str]
-    rules_text: str
-    payment_info: str
-    gament_id_required: bool
+    ton_wallet: str
     support_url: str
     channel_url: str
-    telegram_integration_secret: str
 
 
-_raw_app_url = os.getenv("APP_URL", "https://www.gament1.ir").strip().rstrip("/")
+_raw_app_url = os.getenv("APP_URL", "https://flexa.gg").strip().rstrip("/")
 
 settings = Settings(
     bot_token=os.getenv("BOT_TOKEN", "").strip(),
     admin_ids=_split_int_csv(os.getenv("ADMIN_IDS")),
-    tournament_title=os.getenv("TOURNAMENT_TITLE", "Gament — پلتفرم تورنومنت گیمینگ").strip(),
-    brand_name=os.getenv("BRAND_NAME", "Gament").strip(),
+    tournament_title=os.getenv("TOURNAMENT_TITLE", "Flexa Arena Global — Next-Gen Esports").strip(),
+    brand_name=os.getenv("BRAND_NAME", "Flexa Arena").strip(),
     app_url=_raw_app_url,
     games=_split_csv(
         os.getenv("GAMES"),
         ["COD MOBILE", "FORTNITE", "CLASH ROYALE"],
     ),
-    platforms=_split_csv(
-        os.getenv("PLATFORMS"),
-        ["Mobile", "PC", "Console", "PS5", "PS4", "Xbox", "Nintendo Switch", "Other"],
-    ),
-    rules_text=(os.getenv("RULES_TEXT") or DEFAULT_RULES).strip(),
-    payment_info=(os.getenv("PAYMENT_INFO") or "").strip(),
-    gament_id_required=_bool(os.getenv("GAMENT_ID_REQUIRED"), default=False),
-    support_url=(os.getenv("SUPPORT_URL") or f"{_raw_app_url}/profile").strip(),
+    ton_wallet=os.getenv("TON_WALLET_ADDRESS", "UQCwqcdcUzIvpdsLIJyzd1nVxGkit8q3KIQ1upXeSUEDxcwU").strip(),
+    support_url=(os.getenv("SUPPORT_URL") or f"{_raw_app_url}/support").strip(),
     channel_url=(os.getenv("CHANNEL_URL") or "").strip(),
-    telegram_integration_secret=(os.getenv("TELEGRAM_INTEGRATION_SECRET") or "").strip(),
 )
-
-
-if not settings.bot_token:
-    raise RuntimeError("BOT_TOKEN is missing. Create a .env file based on .env.example and set BOT_TOKEN.")
